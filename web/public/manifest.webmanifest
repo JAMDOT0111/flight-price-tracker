@@ -1,0 +1,19 @@
+{
+  "name": "機票最低價追蹤",
+  "short_name": "機票追蹤",
+  "description": "在日期區間內持續追蹤最便宜的機票，並在出現新低價時通知你。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -65,5 +65,7 @@
 - [ ] 實際線上呼叫測試（需使用者提供 DUFFEL_API_TOKEN）
 
 ## 9. PWA 收尾
-- [ ] manifest、Service Worker、可安裝
-- [ ] 離線殼（offline shell）
+- [x] manifest.webmanifest + App 圖示（SVG）+ index.html 連結與 theme-color
+- [x] Service Worker 執行期快取（同源應用殼），啟動時自動註冊
+- [x] 可安裝（manifest + SW）
+- [x] 離線殼（navigate fallback 至快取首頁）
