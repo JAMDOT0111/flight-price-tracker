@@ -1,0 +1,20 @@
+# 開發用共用映像：server 與 web 共用，僅啟動指令不同（見 docker-compose.yml）
+FROM node:20-slim
+
+WORKDIR /app
+
+# Prisma 在 Debian slim 需要 openssl
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# 先複製各 workspace 的 manifest 以利快取
+COPY package.json package-lock.json* ./
+COPY shared/package.json shared/
+COPY server/package.json server/
+COPY web/package.json web/
+
+RUN npm install
+
+# 其餘原始碼於 docker-compose 以 bind mount 注入（熱更新）
+COPY . .

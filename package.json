@@ -1,0 +1,20 @@
+{
+  "name": "flight-price-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "在指定日期區間內持續追蹤最低機票價格的 PWA",
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace shared",
+    "dev:server": "npm run dev --workspace server",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
