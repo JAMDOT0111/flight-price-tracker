@@ -14,6 +14,11 @@ export interface RunResult {
   isNewLow: boolean;
 }
 
+export interface SharedView {
+  search: TrackedSearch;
+  snapshots: PriceSnapshot[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -44,4 +49,5 @@ export const api = {
     }),
   runNow: (id: string) => request<RunResult>(`/api/searches/${id}/run-now`, { method: "POST" }),
   getSnapshots: (id: string) => request<PriceSnapshot[]>(`/api/searches/${id}/snapshots`),
+  getShared: (token: string) => request<SharedView>(`/api/share/${token}`),
 };

@@ -49,7 +49,7 @@
 - [x] 操作：立即追蹤、暫停/恢復、刪除
 - [x] 價格歷史走勢圖（自製輕量 SVG）
 - [x] 訂票連結（bookingDeepLink）
-- [ ] 可分享連結（shareToken 公開頁，免登入）→ 第 8 步
+- [x] 可分享連結（shareToken 公開頁 /s/:token，免登入）+ 卡片分享按鈕
 
 ## 7. 通知
 - [ ] Web Push（VAPID）訂閱與推播

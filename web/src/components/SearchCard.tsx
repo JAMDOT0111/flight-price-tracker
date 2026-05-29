@@ -95,6 +95,16 @@ export default function SearchCard({ search, onChanged }: Props) {
         <button onClick={toggleExpand} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50">
           {expanded ? "收合走勢" : "價格走勢"}
         </button>
+        <button
+          onClick={() => {
+            const url = `${window.location.origin}/s/${search.shareToken}`;
+            void navigator.clipboard?.writeText(url);
+            alert(`分享連結已複製：\n${url}`);
+          }}
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+        >
+          分享
+        </button>
         {latest?.bookingDeepLink && (
           <a
             href={latest.bookingDeepLink}

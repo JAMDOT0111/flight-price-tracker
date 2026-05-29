@@ -3,8 +3,17 @@ import type { TrackedSearchInput } from "@flight-tracker/shared";
 import { api, type TrackedSearchWithLatest } from "./api.js";
 import SearchForm from "./components/SearchForm.js";
 import SearchCard from "./components/SearchCard.js";
+import SharePage from "./components/SharePage.js";
 
 export default function App() {
+  const shareMatch = window.location.pathname.match(/^\/s\/([^/]+)$/);
+  if (shareMatch) {
+    return <SharePage token={decodeURIComponent(shareMatch[1])} />;
+  }
+  return <Dashboard />;
+}
+
+function Dashboard() {
   const [searches, setSearches] = useState<TrackedSearchWithLatest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
