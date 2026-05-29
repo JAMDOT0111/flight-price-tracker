@@ -50,4 +50,7 @@ export const api = {
   runNow: (id: string) => request<RunResult>(`/api/searches/${id}/run-now`, { method: "POST" }),
   getSnapshots: (id: string) => request<PriceSnapshot[]>(`/api/searches/${id}/snapshots`),
   getShared: (token: string) => request<SharedView>(`/api/share/${token}`),
+  getPushPublicKey: () => request<{ publicKey: string; enabled: boolean }>("/api/push/public-key"),
+  subscribePush: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    request<{ ok: boolean }>("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub) }),
 };

@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { runAllActive } from "./tracker.js";
+import { notifyNewLow } from "../push/notify.js";
 
 const CRON_EXPR = process.env.TRACK_CRON ?? "*/30 * * * *";
 
@@ -17,11 +18,12 @@ export function startScheduler(log: SchedulerLogger): void {
 
   cron.schedule(CRON_EXPR, async () => {
     log.info("[tracker] 排程輪詢開始");
-    const results = await runAllActive((r) => {
+    const results = await runAllActive(async (r) => {
       if (r.isNewLow && r.snapshot) {
         log.info(
           `[tracker] 發現新低價：${r.snapshot.lowestPrice} ${r.snapshot.currency}（追蹤 ${r.trackedSearchId}）`,
         );
+        await notifyNewLow(r.trackedSearchId, r.snapshot);
       }
     });
     log.info(`[tracker] 排程輪詢完成，共處理 ${results.length} 項`);

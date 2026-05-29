@@ -40,7 +40,7 @@
 - [x] 新低價判斷（與歷史最低比較）
 - [x] 手動觸發 API：POST /api/searches/:id/run-now
 - [x] 端對端實測通過（找出 9/20-9/25 最低價 13,346 TWD）
-- [ ] 發現新低價時觸發通知（待第 7 步 Web Push）
+- [x] 發現新低價時觸發通知（接 Web Push）
 
 ## 6. 前端（PWA，響應式）
 - [x] API client（型別共用 shared，DRY）
@@ -52,8 +52,11 @@
 - [x] 可分享連結（shareToken 公開頁 /s/:token，免登入）+ 卡片分享按鈕
 
 ## 7. 通知
-- [ ] Web Push（VAPID）訂閱與推播
-- [ ] 新低價推播
+- [x] 後端 web-push + VAPID 金鑰、推播服務（過期訂閱自動清除）
+- [x] 路由：public-key / subscribe / unsubscribe
+- [x] 前端 Service Worker（push / notificationclick）+ 啟用通知按鈕
+- [x] 新低價時於排程與手動觸發皆推播
+- [x] 端點驗證通過（瀏覽器端實際推播需於真實瀏覽器測試）
 
 ## 8. 真實資料源
 - [ ] 實作 `DuffelProvider`（透過同一 adapter 介面）

@@ -10,6 +10,7 @@ import {
 } from "../lib/mappers.js";
 import { trackedSearchInputSchema } from "../lib/validation.js";
 import { runTrackedSearchById } from "../engine/tracker.js";
+import { notifyNewLow } from "../push/notify.js";
 
 const idParams = z.object({ id: z.string().min(1) });
 const activePatch = z.object({ active: z.boolean() }).strict();
@@ -98,6 +99,9 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
     const { id } = idParams.parse(req.params);
     const result = await runTrackedSearchById(id);
     if (result === null) return reply.code(404).send({ error: "找不到追蹤項目" });
+    if (result.isNewLow && result.snapshot) {
+      await notifyNewLow(result.trackedSearchId, result.snapshot);
+    }
     return result;
   });
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrackedSearchInput } from "@flight-tracker/shared";
 import { api, type TrackedSearchWithLatest } from "./api.js";
+import { enablePush } from "./push.js";
 import SearchForm from "./components/SearchForm.js";
 import SearchCard from "./components/SearchCard.js";
 import SharePage from "./components/SharePage.js";
@@ -41,9 +42,23 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-4">
-          <h1 className="text-xl font-semibold">機票最低價追蹤</h1>
-          <p className="text-sm text-slate-500">在日期區間內持續追蹤最便宜的來回機票</p>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4">
+          <div>
+            <h1 className="text-xl font-semibold">機票最低價追蹤</h1>
+            <p className="text-sm text-slate-500">在日期區間內持續追蹤最便宜的來回機票</p>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                alert(await enablePush());
+              } catch (err) {
+                alert(err instanceof Error ? err.message : "啟用通知失敗");
+              }
+            }}
+            className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            啟用通知
+          </button>
         </div>
       </header>
 
