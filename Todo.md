@@ -4,11 +4,11 @@
 
 ## 0. 前置環境（WSL2 + Docker + GitHub）
 - [x] 在 WSL2 安裝 `gh`（GitHub CLI）
-- [ ] `gh auth login` 完成授權
+- [x] `gh auth login` 完成授權（帳號 JAMDOT0111）
 - [x] Docker Desktop 對 Ubuntu 開啟 WSL integration（`docker` 可用，29.2.1）
 - [x] 建立專案資料夾 `~/projects/flight-price-tracker`
 - [x] `git init`（main 分支）
-- [ ] 建立 GitHub public repo 並推送初始 commit
+- [x] 建立 GitHub public repo 並推送初始 commit（github.com/JAMDOT0111/flight-price-tracker）
 
 ## 1. 專案骨架
 - [x] monorepo 結構：`web/`、`server/`、`shared/`
@@ -21,8 +21,9 @@
 - [x] 定義 `FlightProvider` adapter 介面
 
 ## 3. MockProvider
-- [ ] 產生符合篩選條件的假航班資料（時間窗/直飛/行李）
-- [ ] 供開發/展示使用，免金鑰
+- [x] 產生符合篩選條件的假航班資料（時間窗/直飛/行李）
+- [x] 決定性亂數（相同查詢結果穩定）+ provider factory（依 FLIGHT_PROVIDER 選擇）
+- [x] 供開發/展示使用，免金鑰
 
 ## 4. 後端 API + 資料庫
 - [ ] Prisma schema（PostgreSQL）：TrackedSearch、PriceSnapshot、PushSubscription

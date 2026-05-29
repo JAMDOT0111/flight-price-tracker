@@ -35,3 +35,7 @@ Thumbs.db
 
 # Docker
 .docker-data/
+
+# 內部暫存（提交輔助腳本/訊息）
+/.fpt_*.sh
+/.commitmsg
