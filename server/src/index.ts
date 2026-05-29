@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { searchRoutes } from "./routes/searches.js";
+import { startScheduler } from "./engine/scheduler.js";
 
 const port = Number(process.env.SERVER_PORT ?? 3001);
 
@@ -14,6 +15,10 @@ await app.register(searchRoutes);
 
 try {
   await app.listen({ port, host: "0.0.0.0" });
+  startScheduler({
+    info: (msg) => app.log.info(msg),
+    error: (msg) => app.log.error(msg),
+  });
 } catch (err) {
   app.log.error(err);
   process.exit(1);

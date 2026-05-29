@@ -9,6 +9,7 @@ import {
   trackedSearchToUpdateData,
 } from "../lib/mappers.js";
 import { trackedSearchInputSchema } from "../lib/validation.js";
+import { runTrackedSearchById } from "../engine/tracker.js";
 
 const idParams = z.object({ id: z.string().min(1) });
 const activePatch = z.object({ active: z.boolean() }).strict();
@@ -90,6 +91,14 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
     if (!exists) return reply.code(404).send({ error: "找不到追蹤項目" });
     await prisma.trackedSearch.delete({ where: { id } });
     return reply.code(204).send();
+  });
+
+  // 立即執行一次追蹤（手動觸發，方便測試/展示）
+  app.post("/api/searches/:id/run-now", async (req, reply) => {
+    const { id } = idParams.parse(req.params);
+    const result = await runTrackedSearchById(id);
+    if (result === null) return reply.code(404).send({ error: "找不到追蹤項目" });
+    return result;
   });
 
   // 價格歷史（依時間遞增，供走勢圖）
