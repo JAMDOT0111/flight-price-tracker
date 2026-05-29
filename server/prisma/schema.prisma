@@ -1,0 +1,72 @@
+// Prisma schema：對應 shared 領域型別。
+// 日期以字串 "YYYY-MM-DD"、時刻以 "HH:mm" 儲存，避免時區換算問題。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TrackedSearch {
+  id          String  @id @default(cuid())
+  origin      String
+  destination String
+  tripType    String // "oneway" | "roundtrip"
+
+  dateRangeStart String // "YYYY-MM-DD"
+  dateRangeEnd   String
+
+  durationMode String // "fixed" | "range"
+  durationMin  Int
+  durationMax  Int
+
+  departureWindowStart String? // "HH:mm"
+  departureWindowEnd   String?
+  arrivalWindowStart   String?
+  arrivalWindowEnd     String?
+
+  passengers Int
+  nonStop    Boolean
+
+  checkedBagRequired Boolean
+  checkedBagMinKg    Int?
+
+  currency String
+
+  active     Boolean  @default(true)
+  shareToken String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  snapshots PriceSnapshot[]
+
+  @@index([active])
+}
+
+model PriceSnapshot {
+  id              String        @id @default(cuid())
+  trackedSearchId String
+  trackedSearch   TrackedSearch @relation(fields: [trackedSearchId], references: [id], onDelete: Cascade)
+
+  capturedAt       DateTime @default(now())
+  lowestPrice      Float
+  currency         String
+  bestOutboundDate String
+  bestReturnDate   String?
+  bookingDeepLink  String?
+  offerSummary     Json?
+
+  @@index([trackedSearchId, capturedAt])
+}
+
+model PushSubscription {
+  id              String   @id @default(cuid())
+  endpoint        String   @unique
+  p256dh          String
+  auth            String
+  trackedSearchId String?
+  createdAt       DateTime @default(now())
+}

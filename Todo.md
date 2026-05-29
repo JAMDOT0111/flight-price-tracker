@@ -26,9 +26,12 @@
 - [x] 供開發/展示使用，免金鑰
 
 ## 4. 後端 API + 資料庫
-- [ ] Prisma schema（PostgreSQL）：TrackedSearch、PriceSnapshot、PushSubscription
-- [ ] Fastify：追蹤項目 CRUD
-- [ ] 價格歷史查詢 API
+- [x] Prisma schema（PostgreSQL）：TrackedSearch、PriceSnapshot、PushSubscription
+- [x] 初始 migration 套用、Prisma client 產生
+- [x] zod 驗證 + DB/領域 mapper（SRP/DRY）
+- [x] Fastify：追蹤項目 CRUD（POST/GET/PUT/PATCH/DELETE）
+- [x] 價格歷史查詢 API（GET /api/searches/:id/snapshots）
+- [x] 端對端實測通過（建立/列出/驗證/刪除）
 
 ## 5. Tracker 引擎 + 排程
 - [ ] 滑動視窗計算區間最低價（固定/區間行程天數）
