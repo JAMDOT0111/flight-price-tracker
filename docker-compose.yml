@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: sh -c "npm run build:shared && npm run dev:server"
+    command: sh -c "npm run build:shared && npx prisma generate --schema=server/prisma/schema.prisma && npx prisma migrate deploy --schema=server/prisma/schema.prisma && npm run dev:server"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://flight:flight_dev_pw@db:5432/flight_tracker?schema=public}
       SERVER_PORT: 3001
