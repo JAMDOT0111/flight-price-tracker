@@ -43,10 +43,13 @@
 - [ ] 發現新低價時觸發通知（待第 7 步 Web Push）
 
 ## 6. 前端（PWA，響應式）
-- [ ] 搜尋設定表單（完整篩選 UI，類似 Trip.com）
-- [ ] 儀表板：追蹤清單、目前最低價、價格歷史走勢圖
-- [ ] 訂票連結（bookingDeepLink）
-- [ ] 可分享連結（shareToken 公開頁，免登入）
+- [x] API client（型別共用 shared，DRY）
+- [x] 搜尋設定表單（完整篩選 UI，類似 Trip.com，RWD）
+- [x] 儀表板：追蹤清單、目前最低價、最佳去/回日期
+- [x] 操作：立即追蹤、暫停/恢復、刪除
+- [x] 價格歷史走勢圖（自製輕量 SVG）
+- [x] 訂票連結（bookingDeepLink）
+- [ ] 可分享連結（shareToken 公開頁，免登入）→ 第 8 步
 
 ## 7. 通知
 - [ ] Web Push（VAPID）訂閱與推播
