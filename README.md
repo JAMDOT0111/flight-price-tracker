@@ -25,4 +25,18 @@ docker compose up
 詳見 `Todo.md` 的實作進度。
 
 ## 資料來源說明
-本專案不爬取 Trip.com / Google Flights（違反服務條款且易被封鎖），改以合法且有官方支援的 API 作為資料來源。
+本專案不爬取 Trip.com / Google Flights（違反服務條款且易被封鎖），改以合法且有官方支援的 API 作為資料來源，並以 `FlightProvider` adapter 介面抽換：
+
+- `mock`（預設）：決定性假資料，免金鑰，供開發/展示。
+- `duffel`：真實機票資料，需 Duffel API token。
+
+切換到 Duffel：於 `.env` 設定
+
+```bash
+FLIGHT_PROVIDER=duffel
+DUFFEL_API_TOKEN=你的_duffel_token
+```
+
+然後重建 server 容器（`docker compose up -d --build server`）。
+
+注意（Duffel 限制）：報價幣別由 Duffel 決定（未必等於所選幣別）；託運行李多半僅提供件數、無公斤數，因此若設定「行李最低公斤數」可能過濾掉真實報價。

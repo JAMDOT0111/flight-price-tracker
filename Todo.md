@@ -59,7 +59,10 @@
 - [x] 端點驗證通過（瀏覽器端實際推播需於真實瀏覽器測試）
 
 ## 8. 真實資料源
-- [ ] 實作 `DuffelProvider`（透過同一 adapter 介面）
+- [x] 實作 `DuffelProvider`（透過同一 adapter 介面）
+- [x] factory 依 FLIGHT_PROVIDER 選 mock/duffel
+- [x] README 說明切換方式與 Duffel 限制
+- [ ] 實際線上呼叫測試（需使用者提供 DUFFEL_API_TOKEN）
 
 ## 9. PWA 收尾
 - [ ] manifest、Service Worker、可安裝
