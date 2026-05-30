@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type SharedView } from "../api.js";
 import { formatDate, formatPrice } from "../format.js";
 import PriceChart from "./PriceChart.js";
+import Icon from "./Icon.js";
 
 interface Props {
   token: string;
@@ -19,31 +20,31 @@ export default function SharePage({ token }: Props) {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-4">
-          <h1 className="text-xl font-semibold">機票價格走勢（分享）</h1>
+    <div className="min-h-screen bg-background text-on-surface">
+      <header className="border-b border-outline-variant bg-surface-container-lowest">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-margin-mobile py-4 md:px-margin-desktop">
+          <Icon name="trending_up" className="text-2xl text-primary" />
+          <h1 className="text-headline-lg-mobile font-bold md:text-headline-lg">機票價格走勢（分享）</h1>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        {!error && !data && <p className="text-sm text-slate-400">載入中…</p>}
+      <main className="mx-auto max-w-3xl px-margin-mobile py-6 md:px-margin-desktop">
+        {error && (
+          <p className="rounded-xl bg-error-container px-4 py-3 text-label-md text-on-error-container">{error}</p>
+        )}
+        {!error && !data && <p className="text-label-md text-on-surface-variant">載入中…</p>}
         {data && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-card-padding shadow-tracking-card">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-headline-lg-mobile font-bold md:text-headline-lg">
                 {data.search.origin} → {data.search.destination}
               </span>
               {data.snapshots.length > 0 && (
-                <span className="text-xl font-bold text-sky-700">
-                  {formatPrice(
-                    Math.min(...data.snapshots.map((s) => s.lowestPrice)),
-                    data.search.currency,
-                  )}
+                <span className="text-headline-lg-mobile font-extrabold text-primary md:text-headline-lg">
+                  {formatPrice(Math.min(...data.snapshots.map((s) => s.lowestPrice)), data.search.currency)}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-label-sm text-on-surface-variant">
               {formatDate(data.search.dateRangeStart)}–{formatDate(data.search.dateRangeEnd)}
               {data.search.nonStop && " · 直飛"}
               {` · ${data.search.passengers} 人`}
@@ -51,7 +52,7 @@ export default function SharePage({ token }: Props) {
             <div className="mt-4">
               <PriceChart snapshots={data.snapshots} currency={data.search.currency} />
             </div>
-            <a href="/" className="mt-4 inline-block text-sm text-sky-600 hover:underline">
+            <a href="/" className="mt-4 inline-block text-label-md text-primary hover:underline">
               建立你自己的追蹤 →
             </a>
           </div>

@@ -1,3 +1,119 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --background: #faf8ff;
+  --on-background: #131b2e;
+  --on-surface: #131b2e;
+  --on-surface-variant: #414753;
+  --surface: #faf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f3ff;
+  --surface-container: #eaedff;
+  --surface-container-high: #e2e7ff;
+  --surface-container-highest: #dae2fd;
+  --outline-variant: #c1c6d5;
+  --primary: #004e9f;
+  --on-primary: #ffffff;
+  --primary-container: #0066cc;
+  --on-primary-container: #dfe8ff;
+  --secondary-container: #6cf8bb;
+  --on-secondary-container: #00714d;
+  --tertiary-fixed: #e0e3e5;
+  --on-tertiary-fixed-variant: #444749;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+  --error: #ba1a1a;
+  color-scheme: light;
+}
+
+html.dark {
+  --background: #131b2e;
+  --on-background: #eef0ff;
+  --on-surface: #eef0ff;
+  --on-surface-variant: #c1c6d5;
+  --surface: #131b2e;
+  --surface-container-lowest: #1c2640;
+  --surface-container-low: #222d47;
+  --surface-container: #283044;
+  --surface-container-high: #324060;
+  --surface-container-highest: #3d4d70;
+  --outline-variant: #414753;
+  --primary: #aac7ff;
+  --on-primary: #001b3e;
+  --primary-container: #00458e;
+  --on-primary-container: #dfe8ff;
+  --secondary-container: #005236;
+  --on-secondary-container: #6cf8bb;
+  --tertiary-fixed: #444749;
+  --on-tertiary-fixed-variant: #e0e3e5;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+  --error: #ffb4ab;
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--background);
+    color: var(--on-surface);
+    font-size: theme("fontSize.body-md.0");
+    line-height: theme("fontSize.body-md.1.lineHeight");
+    font-weight: theme("fontSize.body-md.1.fontWeight");
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.material-symbols-filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 10px;
+}
+
+.native-picker-input {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding-right: 0.5rem;
+}
+
+.native-date-input {
+  padding-right: 1.75rem;
+}
+
+.native-time-input {
+  padding-right: 0.75rem;
+}
+
+.native-picker-input::-webkit-calendar-picker-indicator {
+  margin: 0;
+  margin-left: 0.25rem;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.native-time-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}
+
+.native-picker-input::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

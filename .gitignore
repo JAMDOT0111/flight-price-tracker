@@ -13,6 +13,11 @@ build/
 .env
 .env.*
 !.env.example
+server/.env
+
+# Local audit scripts (temporary)
+.git-audit.sh
+git-audit-output.txt
 
 # Prisma
 prisma/*.db

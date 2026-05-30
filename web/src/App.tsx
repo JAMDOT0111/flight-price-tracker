@@ -1,10 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TrackedSearchInput } from "@flight-tracker/shared";
 import { api, type AppConfig, type TrackedSearchWithLatest } from "./api.js";
 import { enablePush } from "./push.js";
 import SearchForm from "./components/SearchForm.js";
 import SearchCard from "./components/SearchCard.js";
 import SharePage from "./components/SharePage.js";
+import Icon from "./components/Icon.js";
+import {
+  FILTER_OPTIONS,
+  SORT_OPTIONS,
+  filterAndSortSearches,
+  type SearchFilter,
+  type SearchSort,
+} from "./lib/searchListControls.js";
+import { applyTheme, getPreferredTheme, type ThemeMode } from "./lib/theme.js";
+
+type NavSection = "home" | "list";
 
 export default function App() {
   const shareMatch = window.location.pathname.match(/^\/s\/([^/]+)$/);
@@ -14,11 +25,26 @@ export default function App() {
   return <Dashboard />;
 }
 
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function Dashboard() {
   const [searches, setSearches] = useState<TrackedSearchWithLatest[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<SearchFilter>("all");
+  const [sort, setSort] = useState<SearchSort>("active-first");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [activeNav, setActiveNav] = useState<NavSection>("home");
+  const [theme, setTheme] = useState<ThemeMode>(() => getPreferredTheme());
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -40,6 +66,17 @@ function Dashboard() {
     refreshConfig();
   }, [refresh, refreshConfig]);
 
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowFilterMenu(false);
+        setShowSortMenu(false);
+      }
+    }
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
   async function handleCreate(input: TrackedSearchInput) {
     await api.createSearch(input);
     await refresh();
@@ -50,55 +87,267 @@ function Dashboard() {
     refreshConfig();
   }, [refresh, refreshConfig]);
 
+  const displayedSearches = useMemo(
+    () => filterAndSortSearches(searches, filter, sort),
+    [searches, filter, sort],
+  );
+
+  function navigate(section: NavSection) {
+    setActiveNav(section);
+    scrollToSection(section === "home" ? "search-form" : "tracking-list");
+  }
+
+  const headerNav = (
+    <div className="hidden items-center gap-8 md:flex">
+      {(
+        [
+          { id: "home" as const, label: "首頁" },
+          { id: "list" as const, label: "追蹤清單" },
+        ] as const
+      ).map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => navigate(id)}
+          className={`border-b-2 py-1 text-body-md transition-colors ${
+            activeNav === id
+              ? "border-primary font-bold text-primary"
+              : "border-transparent font-medium text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const sidebarNavItems: { id: NavSection; label: string; icon: string }[] = [
+    { id: "home", label: "首頁", icon: "home" },
+    { id: "list", label: "追蹤清單", icon: "list_alt" },
+  ];
+
+  const filterBtnClass =
+    "flex items-center gap-1.5 rounded-lg bg-surface-container px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high";
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4">
-          <div>
-            <h1 className="text-xl font-semibold">機票最低價追蹤</h1>
-            <p className="text-sm text-slate-500">在日期區間內持續追蹤最便宜的來回機票</p>
-          </div>
-          <button
-            onClick={async () => {
-              try {
-                alert(await enablePush());
-              } catch (err) {
-                alert(err instanceof Error ? err.message : "啟用通知失敗");
-              }
-            }}
-            className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            啟用通知
-          </button>
+    <div className="min-h-screen bg-background text-on-surface">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col gap-4 border-r border-outline-variant bg-surface-container-lowest px-4 pb-8 pt-8 shadow-sm lg:flex">
+        <div className="mb-4 px-4">
+          <h2 className="text-title-md font-black text-primary">機票追蹤</h2>
+          <p className="text-label-sm text-on-surface-variant">Premium Travel Concierge</p>
         </div>
-      </header>
+        <nav className="flex flex-col gap-1">
+          {sidebarNavItems.map(({ id, label, icon }) => {
+            const active = activeNav === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => navigate(id)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-label-md transition-all ${
+                  active
+                    ? "bg-primary-container font-bold text-on-primary-container"
+                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                }`}
+              >
+                <Icon name={icon} filled={active && id === "home"} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
 
-      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-2">
-        <section>
-          <SearchForm onCreate={handleCreate} />
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">追蹤清單</h2>
-          {config?.fallbackReason && (
-            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {config.fallbackReason === "quota"
-                ? `已達 ${config.primaryProvider} 額度上限，暫時改用「${config.activeProvider}」。`
-                : `${config.primaryProvider} 尚未設定（缺金鑰），暫時改用「${config.activeProvider}」。`}
-            </p>
-          )}
-          {loading && <p className="text-sm text-slate-400">載入中…</p>}
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-          {!loading && !error && searches.length === 0 && (
-            <p className="text-sm text-slate-400">還沒有追蹤項目，從左側新增一個吧。</p>
-          )}
-          <div className="flex flex-col gap-3">
-            {searches.map((s) => (
-              <SearchCard key={s.id} search={s} onChanged={handleChanged} />
-            ))}
+      <div className="flex min-h-screen flex-col pb-20 lg:ml-64 md:pb-0">
+        <header className="sticky top-0 z-50 border-b border-outline-variant bg-background">
+          <div className="flex items-center justify-between gap-4 px-margin-mobile py-4 lg:px-gutter md:px-margin-desktop md:py-5">
+            <div className="flex items-center gap-3">
+              <Icon name="flight_takeoff" filled className="text-3xl text-primary" />
+              <h1 className="text-headline-lg-mobile font-bold text-on-background md:text-headline-lg">
+                機票最低價追蹤
+              </h1>
+            </div>
+            <div className="flex items-center gap-3 md:gap-4">
+              {headerNav}
+              <button
+                type="button"
+                onClick={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
+                aria-pressed={theme === "dark"}
+                aria-label={theme === "light" ? "切換至深色模式" : "切換至淺色模式"}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+              >
+                <Icon name={theme === "light" ? "light_mode" : "dark_mode"} />
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    alert(await enablePush());
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : "啟用通知失敗");
+                  }
+                }}
+                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-label-md text-on-primary transition-all hover:opacity-80"
+              >
+                <Icon name="notifications" className="text-sm" />
+                <span className="hidden sm:inline">啟用通知</span>
+              </button>
+            </div>
           </div>
-        </section>
-      </main>
+        </header>
+
+        <main className="flex-1 px-margin-mobile py-6 lg:px-gutter md:px-margin-desktop">
+          <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
+            <section id="search-form" className="h-fit md:col-span-4 md:sticky md:top-24 lg:col-span-4">
+              <SearchForm onCreate={handleCreate} />
+            </section>
+
+            <section id="tracking-list" className="md:col-span-8 lg:col-span-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-headline-lg-mobile font-bold md:text-headline-lg">追蹤清單</h2>
+                  {!loading && searches.length > 0 && (
+                    <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm font-semibold text-on-surface-variant">
+                      {displayedSearches.length} 件
+                    </span>
+                  )}
+                </div>
+                <div ref={menuRef} className="relative flex gap-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFilterMenu((v) => !v);
+                        setShowSortMenu(false);
+                      }}
+                      className={filterBtnClass}
+                    >
+                      <Icon name="filter_list" className="text-lg" />
+                      篩選
+                    </button>
+                    {showFilterMenu && (
+                      <div className="absolute right-0 z-20 mt-2 min-w-[10rem] rounded-xl border border-outline-variant bg-surface-container-lowest py-1 shadow-lg shadow-black/10">
+                        {FILTER_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setFilter(opt.value);
+                              setShowFilterMenu(false);
+                            }}
+                            className={`block w-full px-4 py-2 text-left text-label-md transition-colors hover:bg-surface-container-low ${
+                              filter === opt.value ? "font-bold text-primary" : "text-on-surface-variant"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSortMenu((v) => !v);
+                        setShowFilterMenu(false);
+                      }}
+                      className={filterBtnClass}
+                    >
+                      <Icon name="sort" className="text-lg" />
+                      排序
+                    </button>
+                    {showSortMenu && (
+                      <div className="absolute right-0 z-20 mt-2 min-w-[12rem] rounded-xl border border-outline-variant bg-surface-container-lowest py-1 shadow-lg shadow-black/10">
+                        {SORT_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setSort(opt.value);
+                              setShowSortMenu(false);
+                            }}
+                            className={`block w-full px-4 py-2 text-left text-label-md transition-colors hover:bg-surface-container-low ${
+                              sort === opt.value ? "font-bold text-primary" : "text-on-surface-variant"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {config?.fallbackReason && (
+                <p className="mb-4 rounded-xl border border-outline-variant/20 bg-error-container px-4 py-3 text-label-md text-on-error-container">
+                  {config.fallbackReason === "quota"
+                    ? `已達 ${config.primaryProvider} 額度上限，暫時改用「${config.activeProvider}」。`
+                    : `${config.primaryProvider} 尚未設定（缺金鑰），暫時改用「${config.activeProvider}」。`}
+                </p>
+              )}
+              {loading && <p className="text-label-md text-on-surface-variant">載入中…</p>}
+              {error && (
+                <p className="rounded-xl bg-error-container px-4 py-3 text-label-md text-on-error-container">{error}</p>
+              )}
+              {!loading && !error && searches.length === 0 && (
+                <p className="text-label-md text-on-surface-variant">還沒有追蹤項目，從左側新增一個吧。</p>
+              )}
+              {!loading && !error && searches.length > 0 && displayedSearches.length === 0 && (
+                <p className="text-label-md text-on-surface-variant">沒有符合篩選條件的項目。</p>
+              )}
+              <div className="space-y-gutter">
+                {displayedSearches.map((s) => (
+                  <SearchCard key={s.id} search={s} onChanged={handleChanged} />
+                ))}
+              </div>
+            </section>
+            </div>
+          </main>
+
+          <footer className="border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-8 lg:px-gutter md:px-margin-desktop">
+            <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+              <div className="flex flex-col items-center md:items-start">
+                <span className="mb-2 text-label-md font-bold text-on-surface">機票最低價追蹤</span>
+                <p className="text-label-sm text-on-surface-variant">© 2026 機票最低價追蹤 — Premium Travel Logistics</p>
+              </div>
+              <div className="flex gap-8">
+                {["隱私政策", "服務條款", "聯繫我們"].map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => alert(`${label}即將推出`)}
+                    className="text-label-sm font-semibold text-on-surface-variant transition-colors hover:text-primary"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </footer>
+      </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-outline-variant bg-surface-container px-4 py-3 lg:hidden">
+        {(
+          [
+            { id: "home" as const, label: "首頁", icon: "home" },
+            { id: "list" as const, label: "追蹤清單", icon: "list_alt" },
+          ] as const
+        ).map(({ id, label, icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => navigate(id)}
+            className={`flex flex-col items-center gap-1 ${activeNav === id ? "text-primary" : "text-on-surface-variant"}`}
+          >
+            <Icon name={icon} filled={activeNav === id} />
+            <span className={`text-[10px] ${activeNav === id ? "font-bold" : "font-medium"}`}>{label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

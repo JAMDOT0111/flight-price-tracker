@@ -116,7 +116,27 @@
 - [x] `SearchCard`：「Google Flights 搜尋」按鈕（不耗 Ignav 額度）
 - [x] `IgnavProvider`：華航 fallback 改用 shared 函式（DRY）
 
-## 9. PWA 收尾
+## 16. Stitch UI 美化（Premium Travel 設計稿）
+> 決定：Bento 區塊拿掉、Sidebar 使用者區拿掉；篩選/排序做前端實作。
+- [x] `tailwind.config.js`：Stitch design tokens（colors、typography、spacing）
+- [x] `index.html` + `index.css`：Hanken Grotesk、Material Symbols、scrollbar
+- [x] `App.tsx`：header、sidebar、footer、mobile nav、篩選/排序
+- [x] `SearchForm.tsx`：Stitch 表單樣式（保留全部欄位與邏輯）
+- [x] `SearchCard.tsx`：Stitch 卡片樣式（保留全部操作）
+- [x] `SharePage.tsx` + `PriceChart.tsx`：統一 design token 配色
+- [x] `lib/searchListControls.ts`：前端篩選（全部/追蹤中/暫停/有報價/無報價）與排序
+- [x] `web/DESIGN.md`：Stitch Elevated Aviation System 規格留存
+- [x] DESIGN.md 對齊修正：header top nav、sidebar 4 項、layout 對齊、icon-only 篩選/排序、footer 連結、手機 4 tab、表單 icon 與分隔線
+
+## 17. 主題切換 + 精簡導覽
+- [x] `lib/theme.ts`：light/dark 切換、localStorage、theme-color meta
+- [x] `index.css` + `tailwind.config.js`：CSS 變數驅動配色（支援 dark class）
+- [x] `index.html` inline script：避免首次載入閃爍
+- [x] `App.tsx`：header 太陽/月亮按鈕
+- [x] Sidebar / header nav / mobile nav 精簡為「首頁」「追蹤清單」兩項
+- [x] 修正主題切換：`index.css` 變數改 `@layer base` + `html.dark` 選擇器
+- [x] 還原誤覆寫的 `index.html`（白畫面根因）
+
 - [x] manifest.webmanifest + App 圖示（SVG）+ index.html 連結與 theme-color
 - [x] Service Worker 執行期快取（同源應用殼），啟動時自動註冊
 - [x] 可安裝（manifest + SW）
