@@ -1,23 +1,56 @@
-import type { FlightProvider } from "@flight-tracker/shared";
+import type { FlightProvider, ProviderName } from "@flight-tracker/shared";
 import { MockProvider } from "./mock/MockProvider.js";
 import { DuffelProvider } from "./duffel/DuffelProvider.js";
+import { IgnavProvider } from "./ignav/IgnavProvider.js";
+
+function isProviderName(name: string): name is ProviderName {
+  return name === "mock" || name === "duffel" || name === "ignav";
+}
+
+function parseName(raw: string): ProviderName {
+  const name = raw.trim().toLowerCase();
+  if (!isProviderName(name)) throw new Error(`未知的資料來源: ${raw}`);
+  return name;
+}
 
 /**
- * 依環境變數 FLIGHT_PROVIDER 選擇資料來源（adapter）。
- * - mock：開發/展示用假資料（免金鑰）
- * - duffel：真實機票資料（需 DUFFEL_API_TOKEN）
+ * 取得資料來源的優先序鏈。
+ * 優先讀 PROVIDER_CHAIN（逗號分隔，如 "duffel,mock"），
+ * 未設定時沿用單一 FLIGHT_PROVIDER（預設 mock），向後相容。
+ * mock 一律附加在最後當保底（去重）。
  */
-export function createFlightProvider(): FlightProvider {
-  const name = (process.env.FLIGHT_PROVIDER ?? "mock").toLowerCase();
+export function getProviderChain(): ProviderName[] {
+  // 用 || 讓空字串（docker 傳入未設定的變數）也視為未設定，保留向後相容。
+  const raw = process.env.PROVIDER_CHAIN?.trim() || process.env.FLIGHT_PROVIDER?.trim() || "mock";
+  const chain = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(parseName);
+  if (!chain.includes("mock")) chain.push("mock");
+  return [...new Set(chain)];
+}
+
+/** 鏈的首要（偏好）來源。 */
+export function getPrimaryProviderName(): ProviderName {
+  return getProviderChain()[0];
+}
+
+/**
+ * 依名稱建立 provider。duffel 缺金鑰時會拋錯（代表「不可用」），
+ * 由 selector 捕捉後改用下一個。
+ */
+export function buildProviderByName(name: ProviderName): FlightProvider {
   switch (name) {
     case "mock":
       return new MockProvider();
     case "duffel":
       return new DuffelProvider(process.env.DUFFEL_API_TOKEN ?? "");
-    default:
-      throw new Error(`未知的 FLIGHT_PROVIDER: ${name}`);
+    case "ignav":
+      return new IgnavProvider(process.env.IGNAV_API_KEY ?? "");
   }
 }
 
 export { MockProvider } from "./mock/MockProvider.js";
 export { DuffelProvider } from "./duffel/DuffelProvider.js";
+export { IgnavProvider } from "./ignav/IgnavProvider.js";

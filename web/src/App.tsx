@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrackedSearchInput } from "@flight-tracker/shared";
-import { api, type TrackedSearchWithLatest } from "./api.js";
+import { api, type AppConfig, type TrackedSearchWithLatest } from "./api.js";
 import { enablePush } from "./push.js";
 import SearchForm from "./components/SearchForm.js";
 import SearchCard from "./components/SearchCard.js";
@@ -16,6 +16,7 @@ export default function App() {
 
 function Dashboard() {
   const [searches, setSearches] = useState<TrackedSearchWithLatest[]>([]);
+  const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,14 +31,24 @@ function Dashboard() {
     }
   }, []);
 
+  const refreshConfig = useCallback(() => {
+    void api.getConfig().then(setConfig).catch(() => {});
+  }, []);
+
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    refreshConfig();
+  }, [refresh, refreshConfig]);
 
   async function handleCreate(input: TrackedSearchInput) {
     await api.createSearch(input);
     await refresh();
   }
+
+  const handleChanged = useCallback(() => {
+    void refresh();
+    refreshConfig();
+  }, [refresh, refreshConfig]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -69,6 +80,13 @@ function Dashboard() {
 
         <section>
           <h2 className="mb-3 text-lg font-semibold">追蹤清單</h2>
+          {config?.fallbackReason && (
+            <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {config.fallbackReason === "quota"
+                ? `已達 ${config.primaryProvider} 額度上限，暫時改用「${config.activeProvider}」。`
+                : `${config.primaryProvider} 尚未設定（缺金鑰），暫時改用「${config.activeProvider}」。`}
+            </p>
+          )}
           {loading && <p className="text-sm text-slate-400">載入中…</p>}
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
           {!loading && !error && searches.length === 0 && (
@@ -76,7 +94,7 @@ function Dashboard() {
           )}
           <div className="flex flex-col gap-3">
             {searches.map((s) => (
-              <SearchCard key={s.id} search={s} onChanged={refresh} />
+              <SearchCard key={s.id} search={s} onChanged={handleChanged} />
             ))}
           </div>
         </section>

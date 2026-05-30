@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { PriceSnapshot } from "@flight-tracker/shared";
+import { buildGoogleFlightsUrlForTrackedSearch, type PriceSnapshot, type ProviderName } from "@flight-tracker/shared";
 import { api, type TrackedSearchWithLatest } from "../api.js";
-import { formatDate, formatPrice } from "../format.js";
+import { formatDate, formatDateTime, formatPrice } from "../format.js";
 import PriceChart from "./PriceChart.js";
 
 interface Props {
@@ -9,10 +9,56 @@ interface Props {
   onChanged: () => void;
 }
 
+const PROVIDER_LABEL: Record<ProviderName, string> = {
+  mock: "模擬資料",
+  duffel: "Duffel",
+  ignav: "Ignav",
+};
+
 function durationText(s: TrackedSearchWithLatest): string {
   if (s.tripType === "oneway") return "單程";
   if (s.durationMode === "fixed") return `${s.durationMin} 天來回`;
   return `${s.durationMin}~${s.durationMax} 天來回`;
+}
+
+function stopsText(stops: number): string {
+  return stops === 0 ? "直飛" : `轉機 ${stops} 次`;
+}
+
+const bookingLinkClass =
+  "rounded-lg border border-emerald-300 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50";
+
+function BookingLinkButtons({
+  outbound,
+  inbound,
+  oneWay,
+}: {
+  outbound: string | null;
+  inbound: string | null;
+  oneWay: boolean;
+}) {
+  if (!outbound && !inbound) return null;
+  if (outbound && inbound && outbound === inbound) {
+    return (
+      <a href={outbound} target="_blank" rel="noreferrer" className={bookingLinkClass}>
+        前往訂票
+      </a>
+    );
+  }
+  return (
+    <>
+      {outbound && (
+        <a href={outbound} target="_blank" rel="noreferrer" className={bookingLinkClass}>
+          {oneWay ? "前往訂票" : "訂去程"}
+        </a>
+      )}
+      {inbound && inbound !== outbound && (
+        <a href={inbound} target="_blank" rel="noreferrer" className={bookingLinkClass}>
+          訂回程
+        </a>
+      )}
+    </>
+  );
 }
 
 export default function SearchCard({ search, onChanged }: Props) {
@@ -21,6 +67,7 @@ export default function SearchCard({ search, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
 
   const latest = search.latestSnapshot;
+  const googleFlightsUrl = buildGoogleFlightsUrlForTrackedSearch(search, latest);
 
   async function loadSnapshots() {
     setSnapshots(await api.getSnapshots(search.id));
@@ -70,12 +117,47 @@ export default function SearchCard({ search, onChanged }: Props) {
                 {latest.bestOutboundDate ? formatDate(latest.bestOutboundDate) : "-"}
                 {latest.bestReturnDate ? ` → ${formatDate(latest.bestReturnDate)}` : ""}
               </div>
+              {latest.source && (
+                <div className="mt-1 flex justify-end">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      latest.source === "mock" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                    }`}
+                    title={
+                      latest.source === "mock"
+                        ? "此價格為模擬資料，僅供展示"
+                        : `此價格來自 ${PROVIDER_LABEL[latest.source]}`
+                    }
+                  >
+                    來源：{PROVIDER_LABEL[latest.source]}
+                  </span>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-sm text-slate-400">尚無報價</div>
           )}
         </div>
       </div>
+
+      {latest?.offerSummary && (
+        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <div className="font-medium text-slate-700">
+            {latest.offerSummary.carrierCodes.join(" / ") || "—"}
+          </div>
+          <div className="mt-1">
+            去程 {formatDateTime(latest.offerSummary.outboundDepartAt)} →{" "}
+            {formatDateTime(latest.offerSummary.outboundArriveAt)} · {stopsText(latest.offerSummary.outboundStops)}
+          </div>
+          {latest.offerSummary.inboundDepartAt && latest.offerSummary.inboundArriveAt && (
+            <div className="mt-0.5">
+              回程 {formatDateTime(latest.offerSummary.inboundDepartAt)} →{" "}
+              {formatDateTime(latest.offerSummary.inboundArriveAt)}
+              {latest.offerSummary.inboundStops !== null && ` · ${stopsText(latest.offerSummary.inboundStops)}`}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -105,15 +187,21 @@ export default function SearchCard({ search, onChanged }: Props) {
         >
           分享
         </button>
-        {latest?.bookingDeepLink && (
-          <a
-            href={latest.bookingDeepLink}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50"
-          >
-            前往訂票
-          </a>
+        <a
+          href={googleFlightsUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
+          title="不耗 API 額度，至 Google Flights 手動查價"
+        >
+          Google Flights 搜尋
+        </a>
+        {latest && (
+          <BookingLinkButtons
+            outbound={latest.bookingDeepLink}
+            inbound={latest.bookingReturnDeepLink}
+            oneWay={search.tripType === "oneway"}
+          />
         )}
         <button
           onClick={() => {

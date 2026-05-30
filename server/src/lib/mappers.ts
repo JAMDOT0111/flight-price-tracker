@@ -6,6 +6,7 @@ import type {
 import type {
   FlightOfferSummary,
   PriceSnapshot,
+  ProviderName,
   TimeWindow,
   TrackedSearch,
 } from "@flight-tracker/shared";
@@ -99,6 +100,8 @@ export function priceSnapshotToDomain(row: DbPriceSnapshot): PriceSnapshot {
     bestOutboundDate: row.bestOutboundDate,
     bestReturnDate: row.bestReturnDate,
     bookingDeepLink: row.bookingDeepLink,
+    bookingReturnDeepLink: row.bookingReturnDeepLink ?? null,
     offerSummary: (row.offerSummary as FlightOfferSummary | null) ?? null,
+    source: (row.source as ProviderName | null) ?? null,
   };
 }

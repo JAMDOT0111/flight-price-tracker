@@ -57,9 +57,21 @@ model PriceSnapshot {
   bestOutboundDate String
   bestReturnDate   String?
   bookingDeepLink  String?
+  bookingReturnDeepLink String?
   offerSummary     Json?
+  source           String? // 產生此價格的資料來源（provider name）
 
   @@index([trackedSearchId, capturedAt])
+}
+
+// 各資料來源的用量計數（按期間累計），用於免費額度上限與 fallback 判斷。
+model ProviderUsage {
+  provider    String
+  period      String // "YYYY-MM"
+  searchCount Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@id([provider, period])
 }
 
 model PushSubscription {

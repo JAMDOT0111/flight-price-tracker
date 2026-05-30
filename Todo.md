@@ -62,7 +62,59 @@
 - [x] 實作 `DuffelProvider`（透過同一 adapter 介面）
 - [x] factory 依 FLIGHT_PROVIDER 選 mock/duffel
 - [x] README 說明切換方式與 Duffel 限制
-- [ ] 實際線上呼叫測試（需使用者提供 DUFFEL_API_TOKEN）
+- [x] 實際線上呼叫測試（DUFFEL_API_TOKEN 已設定；curl LHR→JFK 回 HTTP 201，server 容器 printenv 確認帶入 token）
+
+## 12. 開發環境約定（踩雷紀錄）
+- [x] 前端固定用本機 `npm run dev:web` 跑（server/db 留 docker）
+- [x] `docker-compose.yml` 的 `web` 服務改 `profiles: ["web"]`，預設不啟動，避免容器(root)污染 `web/node_modules/.vite` 並與本機 vite 搶 5173
+- [x] dev 模式不註冊 Service Worker（只在 production build 註冊），並主動移除既有 SW 與快取，避免舊快取造成白畫面（`web/src/main.tsx`）
+- 注意：`.env` 請用 WSL 指令編輯，勿用 Cursor 編輯器（buffer 與磁碟易不同步互相覆蓋）
+- 注意：勿 `export DUFFEL_API_TOKEN=`（空值會蓋過 `.env`，docker compose 取不到 token）
+
+## 10. 顯示票價來源
+- [x] 後端 `getConfiguredProviderName()`（單一來源，不實例化 provider）
+- [x] 後端 `GET /api/config` 回傳 `{ provider }`
+- [x] 前端 `api.getConfig()`
+- [x] App 取得 config 並傳給 SearchCard
+- [x] SearchCard 於價格旁顯示來源標籤（Mock / Duffel）
+
+## 11. 多來源串接 + 用量上限 + 達標提示
+- [x] Prisma：新增 `ProviderUsage(provider, period, searchCount)` 與 `PriceSnapshot.source`，migration
+- [x] shared：新增 `ProviderName` 型別、`PriceSnapshot.source`
+- [x] server：provider 鏈設定（`PROVIDER_CHAIN`，預設沿用 `FLIGHT_PROVIDER`）+ `buildProviderByName`
+- [x] server：用量 repository（`ProviderUsage` 讀/累加，period=YYYY-MM）
+- [x] server：`selectProvider()`（依序挑可用且未達上限者，mock 保底）
+- [x] tracker：每輪用選定 provider、累加用量、快照寫入 `source`
+- [x] mappers：對應 `source`
+- [x] `/api/config`：回傳 primaryProvider / activeProvider / quotaReached / usage
+- [x] 前端：卡片來源標籤改讀 `snapshot.source`；達標時顯示橫幅提示
+- [x] 重建並驗證（migration + 端點 + 顯示）
+- [x] `.env.example` 補上 `PROVIDER_CHAIN` / `DUFFEL_SEARCH_LIMIT` 說明
+
+## 13. 新增資料來源：Ignav（免費 API，價格追蹤用）
+> 決定：(1) market 由 currency 對照表決定，對不到用 `IGNAV_MARKET`（預設 TW）；(2) bookingDeepLink 搜尋時填 null（不額外打 booking-links 省額度）；(3) 與 Duffel 並存，由 PROVIDER_CHAIN 控制，預設 `ignav,mock`。
+- [x] `shared/src/types.ts`：`ProviderName` 加 `"ignav"`
+- [x] `server/src/providers/ignav/IgnavProvider.ts`：實作 adapter（one-way / round-trip、X-Api-Key、回應映射）
+- [x] `server/src/providers/index.ts`：`isProviderName` / `buildProviderByName` 加 `ignav`
+- [x] `web/src/components/SearchCard.tsx`：`PROVIDER_LABEL` 加 `ignav: "Ignav"`
+- [x] `.env.example`：`IGNAV_API_KEY`、`IGNAV_MARKET`、（選配 `IGNAV_SEARCH_LIMIT`）；`.env` 由 WSL 指令填入
+- [x] `docker-compose.yml`：server 服務傳入 `IGNAV_API_KEY` / `IGNAV_MARKET` / `IGNAV_SEARCH_LIMIT`
+- [x] `README.md`：Ignav 來源說明（免費額度、market/幣別、限制）
+- [x] 重建 server + 端對端驗證（IGNAV_API_KEY 設定；curl TPE→SGN 回 HTTP 200、TWD 真實票價，server 容器確認帶入金鑰）
+
+## 14. 航班明細顯示 + 訂票連結（連到航空公司官網）
+> 決定：只對「區間最低價」那筆查一次 Ignav booking-links；優先 airline；來回票**不使用合一連結**（易誤導單程），一律拆成「訂去程」「訂回程」。
+- [x] `shared`：`FlightOffer.bookingToken`、`ResolvedBookingLinks`、`resolveBookingLink` 回傳 `{ outbound, inbound }`
+- [x] `IgnavProvider`：依 legs 分別解析；缺 split option 時以 manual / 單程 ignav_id fallback
+- [x] `tracker.ts` + Prisma：`bookingReturnDeepLink` 欄位 + migration
+- [x] `SearchCard`：顯示 offerSummary；合一連結→「前往訂票」，拆分→「訂去程」「訂回程」
+- [x] 華航 fallback：Ignav `.svc` 無效時改 Google Flights 單程（預填 SGN→TPE + 日期）
+
+## 15. Google Flights 手動搜尋（免 API 額度）
+> 決定：每張追蹤卡片固定顯示「Google Flights 搜尋」；有快照用最佳去/回日期，否則用區間起日 + 固定天數。
+- [x] `shared/googleFlights.ts`：URL 建構 + `buildGoogleFlightsUrlForTrackedSearch`
+- [x] `SearchCard`：「Google Flights 搜尋」按鈕（不耗 Ignav 額度）
+- [x] `IgnavProvider`：華航 fallback 改用 shared 函式（DRY）
 
 ## 9. PWA 收尾
 - [x] manifest.webmanifest + App 圖示（SVG）+ index.html 連結與 theme-color

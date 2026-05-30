@@ -138,26 +138,26 @@ export default function SearchForm({ onCreate }: Props) {
           </div>
         )}
 
-        <div>
+        <div className="sm:col-span-2">
           <label className={labelCls}>
             <input type="checkbox" className="mr-2" checked={useDeparture} onChange={(e) => setUseDeparture(e.target.checked)} />
             出發時間窗
           </label>
           <div className="flex items-center gap-2">
-            <input type="time" className={inputCls} value={depStart} disabled={!useDeparture} onChange={(e) => setDepStart(e.target.value)} />
-            <span className="text-slate-400">~</span>
-            <input type="time" className={inputCls} value={depEnd} disabled={!useDeparture} onChange={(e) => setDepEnd(e.target.value)} />
+            <input type="time" className={`${inputCls} min-w-0 flex-1`} value={depStart} disabled={!useDeparture} onChange={(e) => setDepStart(e.target.value)} />
+            <span className="shrink-0 text-slate-400">~</span>
+            <input type="time" className={`${inputCls} min-w-0 flex-1`} value={depEnd} disabled={!useDeparture} onChange={(e) => setDepEnd(e.target.value)} />
           </div>
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className={labelCls}>
             <input type="checkbox" className="mr-2" checked={useArrival} onChange={(e) => setUseArrival(e.target.checked)} />
             抵達時間窗
           </label>
           <div className="flex items-center gap-2">
-            <input type="time" className={inputCls} value={arrStart} disabled={!useArrival} onChange={(e) => setArrStart(e.target.value)} />
-            <span className="text-slate-400">~</span>
-            <input type="time" className={inputCls} value={arrEnd} disabled={!useArrival} onChange={(e) => setArrEnd(e.target.value)} />
+            <input type="time" className={`${inputCls} min-w-0 flex-1`} value={arrStart} disabled={!useArrival} onChange={(e) => setArrStart(e.target.value)} />
+            <span className="shrink-0 text-slate-400">~</span>
+            <input type="time" className={`${inputCls} min-w-0 flex-1`} value={arrEnd} disabled={!useArrival} onChange={(e) => setArrEnd(e.target.value)} />
           </div>
         </div>
 

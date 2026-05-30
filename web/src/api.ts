@@ -1,4 +1,6 @@
-import type { PriceSnapshot, TrackedSearch, TrackedSearchInput } from "@flight-tracker/shared";
+import type { PriceSnapshot, ProviderName, TrackedSearch, TrackedSearchInput } from "@flight-tracker/shared";
+
+export type { ProviderName } from "@flight-tracker/shared";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3001";
 
@@ -19,10 +21,28 @@ export interface SharedView {
   snapshots: PriceSnapshot[];
 }
 
+export interface ProviderUsageStatus {
+  provider: ProviderName;
+  used: number;
+  limit: number | null;
+  available: boolean;
+}
+
+export type FallbackReason = "unavailable" | "quota";
+
+export interface AppConfig {
+  primaryProvider: ProviderName;
+  activeProvider: ProviderName;
+  fallbackReason: FallbackReason | null;
+  usage: ProviderUsageStatus[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
+  if (init?.body != null) headers["Content-Type"] = "application/json";
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers,
   });
   if (!res.ok) {
     let detail = "";
@@ -50,6 +70,7 @@ export const api = {
   runNow: (id: string) => request<RunResult>(`/api/searches/${id}/run-now`, { method: "POST" }),
   getSnapshots: (id: string) => request<PriceSnapshot[]>(`/api/searches/${id}/snapshots`),
   getShared: (token: string) => request<SharedView>(`/api/share/${token}`),
+  getConfig: () => request<AppConfig>("/api/config"),
   getPushPublicKey: () => request<{ publicKey: string; enabled: boolean }>("/api/push/public-key"),
   subscribePush: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
     request<{ ok: boolean }>("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub) }),

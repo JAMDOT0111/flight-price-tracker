@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { searchRoutes } from "./routes/searches.js";
 import { shareRoutes } from "./routes/share.js";
 import { pushRoutes } from "./routes/push.js";
+import { configRoutes } from "./routes/config.js";
 import { startScheduler } from "./engine/scheduler.js";
 
 const port = Number(process.env.SERVER_PORT ?? 3001);
@@ -16,6 +17,7 @@ app.get("/health", async () => ({ status: "ok", service: "flight-tracker-server"
 await app.register(searchRoutes);
 await app.register(shareRoutes);
 await app.register(pushRoutes);
+await app.register(configRoutes);
 
 try {
   await app.listen({ port, host: "0.0.0.0" });

@@ -7,12 +7,12 @@ import type {
 } from "@flight-tracker/shared";
 import { prisma } from "../db.js";
 import { priceSnapshotToDomain, trackedSearchToDomain } from "../lib/mappers.js";
-import { createFlightProvider } from "../providers/index.js";
+import { selectProvider } from "../providers/selector.js";
+import { addUsage } from "../providers/usage.js";
 import { offerMatches } from "./filters.js";
 import { capPairs, enumerateDatePairs, type DatePair } from "./window.js";
 
 const MAX_QUERIES = Number(process.env.MAX_QUERIES_PER_RUN ?? 60);
-const provider = createFlightProvider();
 
 export interface RunResult {
   trackedSearchId: string;
@@ -45,8 +45,12 @@ function summarize(offer: FlightOffer): FlightOfferSummary {
 export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult> {
   const pairs = capPairs(enumerateDatePairs(search), MAX_QUERIES);
 
+  // 每輪開始選定來源（依鏈/用量上限），整輪沿用。
+  const { provider, name: providerName } = await selectProvider();
+
   let best: { offer: FlightOffer; pair: DatePair } | null = null;
   let matched = 0;
+  let searchCount = 0;
 
   for (const pair of pairs) {
     const offers = await provider.search({
@@ -58,12 +62,15 @@ export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult
       nonStop: search.nonStop,
       currency: search.currency,
     });
+    searchCount++;
     for (const offer of offers) {
       if (!offerMatches(offer, search)) continue;
       matched++;
       if (!best || offer.totalPrice < best.offer.totalPrice) best = { offer, pair };
     }
   }
+
+  await addUsage(providerName, searchCount);
 
   if (!best) {
     return { trackedSearchId: search.id, evaluated: pairs.length, matched, snapshot: null, isNewLow: false };
@@ -76,6 +83,21 @@ export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult
   const isNewLow =
     prevMin._min.lowestPrice === null || best.offer.totalPrice < prevMin._min.lowestPrice;
 
+  // 僅對選定的最低價解析訂票連結（省 API 額度）；失敗不影響主流程。
+  let bookingDeepLink = best.offer.bookingDeepLink;
+  let bookingReturnDeepLink: string | null = null;
+  if (provider.resolveBookingLink) {
+    try {
+      const links = await provider.resolveBookingLink(best.offer);
+      if (links) {
+        bookingDeepLink = links.outbound;
+        bookingReturnDeepLink = links.inbound;
+      }
+    } catch (err) {
+      console.error(`[tracker] 解析訂票連結失敗 (${providerName}):`, err);
+    }
+  }
+
   const row = await prisma.priceSnapshot.create({
     data: {
       trackedSearchId: search.id,
@@ -83,8 +105,10 @@ export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult
       currency: best.offer.currency,
       bestOutboundDate: best.pair.departureDate,
       bestReturnDate: best.pair.returnDate,
-      bookingDeepLink: best.offer.bookingDeepLink,
+      bookingDeepLink,
+      bookingReturnDeepLink,
       offerSummary: summarize(best.offer) as unknown as Prisma.InputJsonValue,
+      source: providerName,
     },
   });
 

@@ -5,6 +5,9 @@
 
 export type TripType = "oneway" | "roundtrip";
 
+/** 機票資料來源名稱 */
+export type ProviderName = "mock" | "duffel" | "ignav";
+
 /** 行程天數設定：固定天數或天數區間 */
 export type DurationMode = "fixed" | "range";
 
@@ -64,9 +67,14 @@ export interface PriceSnapshot {
   currency: string;
   bestOutboundDate: string;
   bestReturnDate: string | null;
+  /** 去程（或合一來回）訂票連結 */
   bookingDeepLink: string | null;
+  /** 回程訂票連結；與 bookingDeepLink 不同時前端顯示「訂回程」 */
+  bookingReturnDeepLink: string | null;
   /** 該最低價對應航班的摘要（序列化保存） */
   offerSummary: FlightOfferSummary | null;
+  /** 產生此價格的資料來源；舊資料可能為 null */
+  source: ProviderName | null;
 }
 
 /** 航班單段資訊 */
@@ -97,6 +105,11 @@ export interface FlightOffer {
   /** 含託運行李公斤數（無資訊則為 null） */
   includedCheckedBagWeightKg: number | null;
   bookingDeepLink: string | null;
+  /**
+   * 來源端用以事後解析訂票連結的識別碼（如 Ignav 的 ignav_id）。
+   * 由實作了 resolveBookingLink 的 provider 設定；其他來源可省略。
+   */
+  bookingToken?: string | null;
 }
 
 /** 寫入快照時用的精簡摘要 */

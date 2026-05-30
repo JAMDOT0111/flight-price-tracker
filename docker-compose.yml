@@ -25,6 +25,12 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://flight:flight_dev_pw@db:5432/flight_tracker?schema=public}
       SERVER_PORT: 3001
       FLIGHT_PROVIDER: ${FLIGHT_PROVIDER:-mock}
+      PROVIDER_CHAIN: ${PROVIDER_CHAIN:-}
+      DUFFEL_API_TOKEN: ${DUFFEL_API_TOKEN:-}
+      DUFFEL_SEARCH_LIMIT: ${DUFFEL_SEARCH_LIMIT:-}
+      IGNAV_API_KEY: ${IGNAV_API_KEY:-}
+      IGNAV_MARKET: ${IGNAV_MARKET:-TW}
+      IGNAV_SEARCH_LIMIT: ${IGNAV_SEARCH_LIMIT:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
@@ -38,6 +44,9 @@ services:
         condition: service_healthy
 
   web:
+    # 前端固定用本機 `npm run dev:web` 開發，避免容器(root)寫壞 web/node_modules/.vite
+    # 並與本機 vite 搶 5173。預設不啟動；需要容器化前端時用 `docker compose --profile web up`。
+    profiles: ["web"]
     build:
       context: .
       dockerfile: Dockerfile.dev
