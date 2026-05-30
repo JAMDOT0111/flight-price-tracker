@@ -18,6 +18,7 @@ server/.env
 # Local audit scripts (temporary)
 .git-audit.sh
 git-audit-output.txt
+prepush-result.txt
 
 # Prisma
 prisma/*.db

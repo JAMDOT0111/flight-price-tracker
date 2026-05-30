@@ -136,6 +136,7 @@
 - [x] Sidebar / header nav / mobile nav 精簡為「首頁」「追蹤清單」兩項
 - [x] 修正主題切換：`index.css` 變數改 `@layer base` + `html.dark` 選擇器
 - [x] 還原誤覆寫的 `index.html`（白畫面根因）
+- [x] 敏感檔案檢查 + push GitHub（`7fe7725`）
 
 - [x] manifest.webmanifest + App 圖示（SVG）+ index.html 連結與 theme-color
 - [x] Service Worker 執行期快取（同源應用殼），啟動時自動註冊
