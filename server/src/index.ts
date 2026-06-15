@@ -8,9 +8,15 @@ import { startScheduler } from "./engine/scheduler.js";
 
 const port = Number(process.env.SERVER_PORT ?? 3001);
 
+if (!process.env.RUN_SECRET?.trim()) {
+  console.warn("[startup] 警告：RUN_SECRET 未設定，/api/run-all 端點將拒絕所有請求。請在 .env 設定 RUN_SECRET。");
+}
+
+const corsOrigin = process.env.CORS_ORIGIN?.trim() || "http://localhost:5173";
+
 const app = Fastify({ logger: true });
 
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: corsOrigin });
 
 app.get("/health", async () => ({ status: "ok", service: "flight-tracker-server" }));
 

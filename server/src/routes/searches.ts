@@ -11,6 +11,16 @@ import {
 import { trackedSearchInputSchema } from "../lib/validation.js";
 import { runAllActive, runTrackedSearchById, runAllActiveWithChain } from "../engine/tracker.js";
 import { notifyNewLow } from "../push/notify.js";
+import type { ProviderName } from "@flight-tracker/shared";
+
+const ALLOWED_PROVIDERS: ProviderName[] = ["google-flights", "ignav", "duffel", "skyscanner", "mock"];
+
+function verifyRunSecret(authHeader: string | undefined): boolean {
+  const secret = process.env.RUN_SECRET?.trim();
+  if (!secret) return false;
+  const token = (authHeader ?? "").replace(/^Bearer\s+/i, "");
+  return token === secret;
+}
 
 const idParams = z.object({ id: z.string().min(1) });
 const activePatch = z.object({ active: z.boolean() }).strict();
@@ -107,24 +117,20 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
 
   /**
    * 立即對所有 active 追蹤項目執行一輪（供 GitHub Actions 或外部排程呼叫）。
-   * 若設定了 RUN_SECRET，則需帶 Authorization: Bearer <secret>。
-   */
-  /**
-   * 立即對所有 active 追蹤項目執行一輪（供 GitHub Actions 或外部排程呼叫）。
-   * Header X-Provider-Override: google-flights  → 只用指定來源（逗號分隔可多選）。
-   * 若設定了 RUN_SECRET，則需帶 Authorization: Bearer <secret>。
+   * 必須帶 Authorization: Bearer <RUN_SECRET>；未設定 RUN_SECRET 時一律拒絕。
+   * Header X-Provider-Override: google-flights → 只用指定來源（逗號分隔，白名單驗證）。
    */
   app.post("/api/run-all", async (req, reply) => {
-    const secret = process.env.RUN_SECRET?.trim();
-    if (secret) {
-      const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
-      if (token !== secret) return reply.code(401).send({ error: "Unauthorized" });
+    if (!verifyRunSecret(req.headers.authorization)) {
+      return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    const override = (req.headers["x-provider-override"] as string | undefined)?.trim();
-    const runner = override
-      ? (cb: Parameters<typeof runAllActive>[0]) =>
-          runAllActiveWithChain(override.split(",").map((s) => s.trim() as any), cb)
+    const overrideHeader = (req.headers["x-provider-override"] as string | undefined)?.trim();
+    const overrideProviders = overrideHeader
+      ? overrideHeader.split(",").map((s) => s.trim()).filter((s): s is ProviderName => ALLOWED_PROVIDERS.includes(s as ProviderName))
+      : [];
+    const runner = overrideProviders.length > 0
+      ? (cb: Parameters<typeof runAllActive>[0]) => runAllActiveWithChain(overrideProviders, cb)
       : runAllActive;
 
     const results = await runner(async (r) => {

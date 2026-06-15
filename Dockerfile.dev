@@ -17,7 +17,13 @@ COPY web/package.json web/
 RUN npm install
 
 # 下載 Playwright Chromium 及系統依賴（GoogleFlightsProvider 需要）
-RUN npx playwright install chromium --with-deps
+# 安裝至 /ms-playwright 以便非 root 使用者存取
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install chromium --with-deps \
+  && chown -R node:node /ms-playwright
+
+# 切換至非 root 使用者（node:20-slim 內建 uid=1000）
+USER node
 
 # 其餘原始碼於 docker-compose 以 bind mount 注入（熱更新）
-COPY . .
+COPY --chown=node:node . .
