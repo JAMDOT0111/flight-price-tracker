@@ -35,14 +35,12 @@ export function offerMatches(offer: FlightOffer, search: TrackedSearch): boolean
     }
   }
 
-  // 託運行李
+  // 託運行李（null 代表 provider 無法解析，視為資料缺失，略過此過濾）
   if (search.checkedBaggage.required) {
-    if (!offer.includedCheckedBags || offer.includedCheckedBags < 1) return false;
+    if (offer.includedCheckedBags !== null && offer.includedCheckedBags < 1) return false;
     const minKg = search.checkedBaggage.minKg;
-    if (minKg !== null) {
-      if (offer.includedCheckedBagWeightKg === null || offer.includedCheckedBagWeightKg < minKg) {
-        return false;
-      }
+    if (minKg !== null && offer.includedCheckedBagWeightKg !== null) {
+      if (offer.includedCheckedBagWeightKg < minKg) return false;
     }
   }
 
