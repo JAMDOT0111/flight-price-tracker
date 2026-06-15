@@ -129,14 +129,24 @@ export async function runTrackedSearchWithChain(
   const isNewLow =
     prevMin._min.lowestPrice === null || offer.totalPrice < prevMin._min.lowestPrice;
 
-  let bookingDeepLink = offer.bookingDeepLink;
+  function sanitizeUrl(url: string | null): string | null {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      return /^https?:$/.test(u.protocol) ? url : null;
+    } catch {
+      return null;
+    }
+  }
+
+  let bookingDeepLink = sanitizeUrl(offer.bookingDeepLink);
   let bookingReturnDeepLink: string | null = null;
   if (provider.resolveBookingLink) {
     try {
       const links = await provider.resolveBookingLink(offer);
       if (links) {
-        bookingDeepLink = links.outbound;
-        bookingReturnDeepLink = links.inbound;
+        bookingDeepLink = sanitizeUrl(links.outbound);
+        bookingReturnDeepLink = sanitizeUrl(links.inbound);
       }
     } catch (err) {
       console.error(`[tracker] 解析訂票連結失敗 (${providerName}):`, err);

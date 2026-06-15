@@ -48,3 +48,4 @@ Thumbs.db
 # 本地除錯腳本（可能讀取 .env，勿提交）
 .test_*.sh
 .test_*.mjs
+*.env.local

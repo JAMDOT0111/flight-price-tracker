@@ -3,6 +3,7 @@ import type { PriceSnapshot, ProviderName, TrackedSearch, TrackedSearchInput } f
 export type { ProviderName } from "@flight-tracker/shared";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3001";
+const API_TOKEN = (import.meta.env.VITE_API_TOKEN as string | undefined) ?? "";
 
 export interface TrackedSearchWithLatest extends TrackedSearch {
   latestSnapshot: PriceSnapshot | null;
@@ -40,6 +41,7 @@ export interface AppConfig {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
   if (init?.body != null) headers["Content-Type"] = "application/json";
+  if (API_TOKEN) headers["Authorization"] = `Bearer ${API_TOKEN}`;
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers,

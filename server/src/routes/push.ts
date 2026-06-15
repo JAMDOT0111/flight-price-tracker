@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
 import { pushEnabled, vapidPublicKey } from "../push/webpush.js";
+import { verifyRunSecret } from "../lib/auth.js";
 
 const subscribeSchema = z.object({
   endpoint: z.string().url(),
@@ -15,6 +16,9 @@ export const pushRoutes: FastifyPluginAsync = async (app) => {
   app.get("/api/push/public-key", async () => ({ publicKey: vapidPublicKey, enabled: pushEnabled }));
 
   app.post("/api/push/subscribe", async (req, reply) => {
+    if (!verifyRunSecret(req.headers.authorization)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = subscribeSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
     const { endpoint, keys, trackedSearchId } = parsed.data;
@@ -27,6 +31,9 @@ export const pushRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post("/api/push/unsubscribe", async (req, reply) => {
+    if (!verifyRunSecret(req.headers.authorization)) {
+      return reply.code(401).send({ error: "Unauthorized" });
+    }
     const parsed = unsubscribeSchema.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
     await prisma.pushSubscription.delete({ where: { endpoint: parsed.data.endpoint } }).catch(() => {});
