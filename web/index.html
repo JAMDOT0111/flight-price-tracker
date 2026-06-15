@@ -17,6 +17,15 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#004e9f" />
     <script>
+      // GitHub Pages SPA redirect 還原：將 ?/s/TOKEN 還原為真實路徑
+      (function (l) {
+        if (l.search[1] === "/") {
+          var path = decodeURIComponent(l.search.slice(2));
+          window.history.replaceState(null, null, l.pathname + path + l.hash);
+        }
+      })(window.location);
+    </script>
+    <script>
       (function () {
         var k = "flight-tracker-theme";
         var s;

@@ -18,7 +18,11 @@ import { applyTheme, getPreferredTheme, type ThemeMode } from "./lib/theme.js";
 type NavSection = "home" | "list";
 
 export default function App() {
-  const shareMatch = window.location.pathname.match(/^\/s\/([^/]+)$/);
+  // BASE_URL 在 GitHub Pages 為 "/flight-price-tracker/"，本機為 "/"
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const shareMatch = window.location.pathname.match(
+    new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\/s\\/([^/]+)$`),
+  );
   if (shareMatch) {
     return <SharePage token={decodeURIComponent(shareMatch[1])} />;
   }

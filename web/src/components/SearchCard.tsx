@@ -255,7 +255,7 @@ export default function SearchCard({ search, onChanged }: Props) {
         <button
           type="button"
           onClick={() => {
-            const url = `${window.location.origin}/s/${search.shareToken}`;
+            const url = `${window.location.origin}${import.meta.env.BASE_URL}s/${search.shareToken}`;
             void navigator.clipboard?.writeText(url);
             alert(`分享連結已複製：\n${url}`);
           }}

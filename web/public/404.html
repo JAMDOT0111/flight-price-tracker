@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // GitHub Pages SPA redirect：將深層路徑轉為 ?/ 查詢參數，讓 index.html 接手
+      var l = window.location;
+      var base = l.pathname.split("/").slice(0, 2).join("/"); // e.g. /flight-price-tracker
+      var rest = l.pathname.slice(base.length + 1) + l.search; // e.g. s/TOKEN
+      l.replace(l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") +
+        base + "/?/" + encodeURIComponent(rest) + l.hash);
+    </script>
+  </head>
+</html>
