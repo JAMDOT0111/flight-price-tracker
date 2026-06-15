@@ -214,7 +214,7 @@ export default function SearchForm({ onCreate }: Props) {
               onChange={(e) => setUseDeparture(e.target.checked)}
             />
             <label htmlFor="departure_time" className="text-label-md text-on-surface">
-              出發時間窗
+              去程出發時間
             </label>
           </div>
           <div className="space-y-3">
@@ -251,7 +251,7 @@ export default function SearchForm({ onCreate }: Props) {
               onChange={(e) => setUseArrival(e.target.checked)}
             />
             <label htmlFor="arrival_time" className="text-label-md text-on-surface">
-              抵達時間窗
+              返程出發時間
             </label>
           </div>
           <div className="space-y-3">

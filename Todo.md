@@ -64,13 +64,6 @@
 - [x] README 說明切換方式與 Duffel 限制
 - [x] 實際線上呼叫測試（DUFFEL_API_TOKEN 已設定；curl LHR→JFK 回 HTTP 201，server 容器 printenv 確認帶入 token）
 
-## 12. 開發環境約定（踩雷紀錄）
-- [x] 前端固定用本機 `npm run dev:web` 跑（server/db 留 docker）
-- [x] `docker-compose.yml` 的 `web` 服務改 `profiles: ["web"]`，預設不啟動，避免容器(root)污染 `web/node_modules/.vite` 並與本機 vite 搶 5173
-- [x] dev 模式不註冊 Service Worker（只在 production build 註冊），並主動移除既有 SW 與快取，避免舊快取造成白畫面（`web/src/main.tsx`）
-- 注意：`.env` 請用 WSL 指令編輯，勿用 Cursor 編輯器（buffer 與磁碟易不同步互相覆蓋）
-- 注意：勿 `export DUFFEL_API_TOKEN=`（空值會蓋過 `.env`，docker compose 取不到 token）
-
 ## 10. 顯示票價來源
 - [x] 後端 `getConfiguredProviderName()`（單一來源，不實例化 provider）
 - [x] 後端 `GET /api/config` 回傳 `{ provider }`
@@ -83,7 +76,6 @@
 - [x] shared：新增 `ProviderName` 型別、`PriceSnapshot.source`
 - [x] server：provider 鏈設定（`PROVIDER_CHAIN`，預設沿用 `FLIGHT_PROVIDER`）+ `buildProviderByName`
 - [x] server：用量 repository（`ProviderUsage` 讀/累加，period=YYYY-MM）
-- [x] server：`selectProvider()`（依序挑可用且未達上限者，mock 保底）
 - [x] tracker：每輪用選定 provider、累加用量、快照寫入 `source`
 - [x] mappers：對應 `source`
 - [x] `/api/config`：回傳 primaryProvider / activeProvider / quotaReached / usage
@@ -91,54 +83,77 @@
 - [x] 重建並驗證（migration + 端點 + 顯示）
 - [x] `.env.example` 補上 `PROVIDER_CHAIN` / `DUFFEL_SEARCH_LIMIT` 說明
 
+## 12. 開發環境約定（踩雷紀錄）
+- [x] 前端固定用本機 `npm run dev:web` 跑（server/db 留 docker）
+- [x] `docker-compose.yml` 的 `web` 服務改 `profiles: ["web"]`，預設不啟動，避免容器(root)污染 `web/node_modules/.vite` 並與本機 vite 搶 5173
+- [x] dev 模式不註冊 Service Worker（只在 production build 註冊），並主動移除既有 SW 與快取，避免舊快取造成白畫面（`web/src/main.tsx`）
+- 注意：`.env` 請用 WSL 指令編輯，勿用 Cursor 編輯器（buffer 與磁碟易不同步互相覆蓋）
+- 注意：勿 `export DUFFEL_API_TOKEN=`（空值會蓋過 `.env`，docker compose 取不到 token）
+- 注意：`docker compose restart server` 只重啟不換 image；改過 Dockerfile 後要用 `docker compose up -d` 才會換新 image
+
 ## 13. 新增資料來源：Ignav（免費 API，價格追蹤用）
-> 決定：(1) market 由 currency 對照表決定，對不到用 `IGNAV_MARKET`（預設 TW）；(2) bookingDeepLink 搜尋時填 null（不額外打 booking-links 省額度）；(3) 與 Duffel 並存，由 PROVIDER_CHAIN 控制，預設 `ignav,mock`。
+> 決定：(1) market 由 currency 對照表決定，對不到用 `IGNAV_MARKET`（預設 TW）；(2) bookingDeepLink 搜尋時填 null（不額外打 booking-links 省額度）；(3) 與 Duffel 並存，由 PROVIDER_CHAIN 控制。
 - [x] `shared/src/types.ts`：`ProviderName` 加 `"ignav"`
-- [x] `server/src/providers/ignav/IgnavProvider.ts`：實作 adapter（one-way / round-trip、X-Api-Key、回應映射）
-- [x] `server/src/providers/index.ts`：`isProviderName` / `buildProviderByName` 加 `ignav`
-- [x] `web/src/components/SearchCard.tsx`：`PROVIDER_LABEL` 加 `ignav: "Ignav"`
-- [x] `.env.example`：`IGNAV_API_KEY`、`IGNAV_MARKET`、（選配 `IGNAV_SEARCH_LIMIT`）；`.env` 由 WSL 指令填入
-- [x] `docker-compose.yml`：server 服務傳入 `IGNAV_API_KEY` / `IGNAV_MARKET` / `IGNAV_SEARCH_LIMIT`
-- [x] `README.md`：Ignav 來源說明（免費額度、market/幣別、限制）
-- [x] 重建 server + 端對端驗證（IGNAV_API_KEY 設定；curl TPE→SGN 回 HTTP 200、TWD 真實票價，server 容器確認帶入金鑰）
+- [x] `server/src/providers/ignav/IgnavProvider.ts`：實作 adapter
+- [x] `server/src/providers/index.ts`：`buildProviderByName` 加 `ignav`
+- [x] `.env.example`：`IGNAV_API_KEY`、`IGNAV_MARKET`、`IGNAV_SEARCH_LIMIT`
+- [x] `docker-compose.yml`：server 服務傳入 Ignav 環境變數
+- [x] 重建 server + 端對端驗證
 
 ## 14. 航班明細顯示 + 訂票連結（連到航空公司官網）
-> 決定：只對「區間最低價」那筆查一次 Ignav booking-links；優先 airline；來回票**不使用合一連結**（易誤導單程），一律拆成「訂去程」「訂回程」。
-- [x] `shared`：`FlightOffer.bookingToken`、`ResolvedBookingLinks`、`resolveBookingLink` 回傳 `{ outbound, inbound }`
-- [x] `IgnavProvider`：依 legs 分別解析；缺 split option 時以 manual / 單程 ignav_id fallback
+> 決定：只對「區間最低價」那筆查一次 Ignav booking-links；優先 airline；來回票拆成「訂去程」「訂回程」。
+- [x] `shared`：`FlightOffer.bookingToken`、`ResolvedBookingLinks`、`resolveBookingLink`
+- [x] `IgnavProvider`：依 legs 分別解析；缺 split option 時 fallback
 - [x] `tracker.ts` + Prisma：`bookingReturnDeepLink` 欄位 + migration
-- [x] `SearchCard`：顯示 offerSummary；合一連結→「前往訂票」，拆分→「訂去程」「訂回程」
-- [x] 華航 fallback：Ignav `.svc` 無效時改 Google Flights 單程（預填 SGN→TPE + 日期）
+- [x] `SearchCard`：顯示 offerSummary；拆分「訂去程」「訂回程」按鈕
+- [x] 華航 fallback：Ignav `.svc` 無效時改 Google Flights 單程
 
-## 15. Google Flights 手動搜尋（免 API 額度）
-> 決定：每張追蹤卡片固定顯示「Google Flights 搜尋」；有快照用最佳去/回日期，否則用區間起日 + 固定天數。
+## 15. Google Flights 手動搜尋按鈕
 - [x] `shared/googleFlights.ts`：URL 建構 + `buildGoogleFlightsUrlForTrackedSearch`
-- [x] `SearchCard`：「Google Flights 搜尋」按鈕（不耗 Ignav 額度）
+- [x] `SearchCard`：「Google Flights 搜尋」按鈕（不耗 API 額度）
 - [x] `IgnavProvider`：華航 fallback 改用 shared 函式（DRY）
 
 ## 16. Stitch UI 美化（Premium Travel 設計稿）
-> 決定：Bento 區塊拿掉、Sidebar 使用者區拿掉；篩選/排序做前端實作。
-- [x] `tailwind.config.js`：Stitch design tokens（colors、typography、spacing）
-- [x] `index.html` + `index.css`：Hanken Grotesk、Material Symbols、scrollbar
+- [x] Tailwind design tokens、Hanken Grotesk、Material Symbols
 - [x] `App.tsx`：header、sidebar、footer、mobile nav、篩選/排序
-- [x] `SearchForm.tsx`：Stitch 表單樣式（保留全部欄位與邏輯）
-- [x] `SearchCard.tsx`：Stitch 卡片樣式（保留全部操作）
-- [x] `SharePage.tsx` + `PriceChart.tsx`：統一 design token 配色
-- [x] `lib/searchListControls.ts`：前端篩選（全部/追蹤中/暫停/有報價/無報價）與排序
+- [x] `SearchForm.tsx` / `SearchCard.tsx` / `SharePage.tsx` / `PriceChart.tsx`：Stitch 樣式
+- [x] `lib/searchListControls.ts`：前端篩選與排序
 - [x] `web/DESIGN.md`：Stitch Elevated Aviation System 規格留存
-- [x] DESIGN.md 對齊修正：header top nav、sidebar 4 項、layout 對齊、icon-only 篩選/排序、footer 連結、手機 4 tab、表單 icon 與分隔線
 
-## 17. 主題切換 + 精簡導覽
-- [x] `lib/theme.ts`：light/dark 切換、localStorage、theme-color meta
-- [x] `index.css` + `tailwind.config.js`：CSS 變數驅動配色（支援 dark class）
-- [x] `index.html` inline script：避免首次載入閃爍
-- [x] `App.tsx`：header 太陽/月亮按鈕
-- [x] Sidebar / header nav / mobile nav 精簡為「首頁」「追蹤清單」兩項
-- [x] 修正主題切換：`index.css` 變數改 `@layer base` + `html.dark` 選擇器
-- [x] 還原誤覆寫的 `index.html`（白畫面根因）
-- [x] 敏感檔案檢查 + push GitHub（`7fe7725`）
+## 17. 主題切換 + PWA
+- [x] light/dark 切換（localStorage、theme-color meta、CSS 變數）
+- [x] Sidebar / header nav 精簡為「首頁」「追蹤清單」
+- [x] manifest.webmanifest + App 圖示（SVG）+ Service Worker 快取
+- [x] 可安裝（manifest + SW）、離線殼
 
-- [x] manifest.webmanifest + App 圖示（SVG）+ index.html 連結與 theme-color
-- [x] Service Worker 執行期快取（同源應用殼），啟動時自動註冊
-- [x] 可安裝（manifest + SW）
-- [x] 離線殼（navigate fallback 至快取首頁）
+## 18. Google Flights 爬蟲資料來源（自動追價）
+> 決定：使用 Playwright headless Chromium 爬取 `li.pIav2d` 結果卡片；selector 由截圖除錯確認。Skyscanner（Press & Hold）與 Trip.com（whaleguard）封鎖無法繞過，停用。
+- [x] `server/src/providers/googleflights/GoogleFlightsProvider.ts`：Playwright 爬蟲實作
+- [x] `server/src/providers/scraper/stealth.ts`：共用 stealth 瀏覽器工具
+- [x] `shared/src/types.ts`：`ProviderName` 加 `"google-flights"`、`"skyscanner"`、`"trip"`
+- [x] `server/src/providers/index.ts`：`buildProviderByName` 加三來源（trip 拋錯、skyscanner 缺金鑰）
+- [x] `Dockerfile.dev`：加入 `npx playwright install chromium --with-deps`（烤進 image，無需每次手動裝）
+- [x] `server/package.json`：加入 `playwright` 依賴
+- [x] 實測通過：TPE→NRT 爬到 NT$4,990（Peach Aviation 直飛）
+
+## 19. 多來源全域最低價架構（All-Provider Chain）
+> 決定：每輪查詢所有可用來源，取全域最低價寫入快照；不再強制 mock 保底（移除 `getProviderChain` 中的 `push("mock")`）。
+- [x] `tracker.ts`：`runTrackedSearchWithChain` 跨 provider 比較，取最低價並記錄 `source`
+- [x] `server/src/routes/searches.ts`：`POST /api/run-all` 加 `X-Provider-Override` header 支援
+- [x] `providers/index.ts`：移除強制 mock 保底邏輯（不再混入假資料）
+- [x] `engine/filters.ts`：`arrivalWindow` 語意修正為「返程出發時間」（不再過濾去程抵達）
+- [x] 移除 Amadeus provider（自助服務入口 2026-07-17 停用）
+
+## 20. GitHub Actions 排程爬蟲
+> 決定：Google Flights 每小時、Ignav 每週一（本月剩餘額度保守設定）；透過 `X-Provider-Override` header 分開觸發。
+- [x] `.github/workflows/scraper.yml`：google-flights 每小時、ignav 每週一
+- [x] `docker-compose.yml`：加入 `RUN_SECRET`、各來源 `SEARCH_LIMIT` 環境變數
+- [x] `.env.example`：`RUN_SECRET`、`PROVIDER_CHAIN`、各來源限制說明
+
+## 21. UI 修正（本輪）
+- [x] 表單標籤：「出發時間窗」→「去程出發時間」、「抵達時間窗」→「返程出發時間」
+- [x] 追蹤清單摘要：「出發 HH:MM」→「去程出發 HH:MM」、「抵達 HH:MM」→「返程出發 HH:MM」
+- [x] `PROVIDER_LABEL` 補齊：加入 `google-flights`、`skyscanner`、`trip`（原本顯示 undefined）
+- [x] 來源標籤移除「來源：」前綴，改在下方顯示截取時間戳
+- [x] `shared/googleFlights.ts`：修正 URL 語序（`from X to Y` 對齊爬蟲用的查詢格式）
+- [x] 刪除 DB 中舊的 mock 快照（避免假資料持續顯示）

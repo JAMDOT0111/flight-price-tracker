@@ -18,8 +18,8 @@ export function buildGoogleFlightsSearchUrl(options: {
   const { origin, destination, tripType, currency, departureDate, returnDate } = options;
   const q =
     tripType === "roundtrip" && returnDate
-      ? `Flights to ${destination} from ${origin} on ${departureDate} through ${returnDate}`
-      : `Flights to ${destination} from ${origin} on ${departureDate} oneway`;
+      ? `Flights from ${origin} to ${destination} on ${departureDate} through ${returnDate}`
+      : `Flights from ${origin} to ${destination} on ${departureDate} oneway`;
   return `https://www.google.com/travel/flights?${new URLSearchParams({ q, curr: currency }).toString()}`;
 }
 

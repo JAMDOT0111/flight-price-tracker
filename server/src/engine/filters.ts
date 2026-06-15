@@ -12,7 +12,7 @@ function lastSegmentArrive(itin: FlightItinerary): string {
 
 /**
  * 依追蹤條件過濾單筆報價。
- * 時間窗套用於「去程」：出發時刻、抵達時刻；直飛與託運行李為硬性條件。
+ * departureWindow = 去程出發時間；arrivalWindow = 返程出發時間（無回程資料時略過）。
  */
 export function offerMatches(offer: FlightOffer, search: TrackedSearch): boolean {
   // 直飛
@@ -21,14 +21,18 @@ export function offerMatches(offer: FlightOffer, search: TrackedSearch): boolean
     if (offer.inbound && offer.inbound.stops !== 0) return false;
   }
 
-  // 出發時間窗（去程第一段起飛）
+  // 去程出發時間窗
   if (search.departureWindow) {
     if (!withinWindow(offer.outbound.segments[0].departAt, search.departureWindow)) return false;
   }
 
-  // 抵達時間窗（去程最後一段抵達）
-  if (search.arrivalWindow) {
-    if (!withinWindow(lastSegmentArrive(offer.outbound), search.arrivalWindow)) return false;
+  // 返程出發時間窗（inbound 無資料時略過，不視為不符合）
+  if (search.arrivalWindow && offer.inbound) {
+    const inboundDepart = offer.inbound.segments[0].departAt;
+    // 爬蟲未解析回程時間時，departAt 為 T00:00:00，視為資料缺失，略過
+    if (!inboundDepart.endsWith("T00:00:00")) {
+      if (!withinWindow(inboundDepart, search.arrivalWindow)) return false;
+    }
   }
 
   // 託運行李

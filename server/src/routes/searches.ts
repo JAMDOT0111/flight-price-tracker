@@ -9,7 +9,7 @@ import {
   trackedSearchToUpdateData,
 } from "../lib/mappers.js";
 import { trackedSearchInputSchema } from "../lib/validation.js";
-import { runTrackedSearchById } from "../engine/tracker.js";
+import { runAllActive, runTrackedSearchById, runAllActiveWithChain } from "../engine/tracker.js";
 import { notifyNewLow } from "../push/notify.js";
 
 const idParams = z.object({ id: z.string().min(1) });
@@ -103,6 +103,36 @@ export const searchRoutes: FastifyPluginAsync = async (app) => {
       await notifyNewLow(result.trackedSearchId, result.snapshot);
     }
     return result;
+  });
+
+  /**
+   * 立即對所有 active 追蹤項目執行一輪（供 GitHub Actions 或外部排程呼叫）。
+   * 若設定了 RUN_SECRET，則需帶 Authorization: Bearer <secret>。
+   */
+  /**
+   * 立即對所有 active 追蹤項目執行一輪（供 GitHub Actions 或外部排程呼叫）。
+   * Header X-Provider-Override: google-flights  → 只用指定來源（逗號分隔可多選）。
+   * 若設定了 RUN_SECRET，則需帶 Authorization: Bearer <secret>。
+   */
+  app.post("/api/run-all", async (req, reply) => {
+    const secret = process.env.RUN_SECRET?.trim();
+    if (secret) {
+      const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+      if (token !== secret) return reply.code(401).send({ error: "Unauthorized" });
+    }
+
+    const override = (req.headers["x-provider-override"] as string | undefined)?.trim();
+    const runner = override
+      ? (cb: Parameters<typeof runAllActive>[0]) =>
+          runAllActiveWithChain(override.split(",").map((s) => s.trim() as any), cb)
+      : runAllActive;
+
+    const results = await runner(async (r) => {
+      if (r.isNewLow && r.snapshot) {
+        await notifyNewLow(r.trackedSearchId, r.snapshot);
+      }
+    });
+    return { processed: results.length, newLows: results.filter((r) => r.isNewLow).length };
   });
 
   // 價格歷史（依時間遞增，供走勢圖）

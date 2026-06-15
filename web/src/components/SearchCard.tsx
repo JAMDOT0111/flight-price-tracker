@@ -14,6 +14,9 @@ const PROVIDER_LABEL: Record<ProviderName, string> = {
   mock: "模擬資料",
   duffel: "Duffel",
   ignav: "Ignav",
+  "google-flights": "Google Flights",
+  skyscanner: "Skyscanner",
+  trip: "Trip.com",
 };
 
 function durationText(s: TrackedSearchWithLatest): string {
@@ -96,8 +99,8 @@ export default function SearchCard({ search, onChanged }: Props) {
   const metaLine = [
     `${formatDate(search.dateRangeStart)}–${formatDate(search.dateRangeEnd)}`,
     search.nonStop ? "直飛" : null,
-    search.departureWindow ? `出發 ${search.departureWindow.start}-${search.departureWindow.end}` : null,
-    search.arrivalWindow ? `抵達 ${search.arrivalWindow.start}-${search.arrivalWindow.end}` : null,
+    search.departureWindow ? `去程出發 ${search.departureWindow.start}-${search.departureWindow.end}` : null,
+    search.arrivalWindow ? `返程出發 ${search.arrivalWindow.start}-${search.arrivalWindow.end}` : null,
     `${search.passengers} 人`,
   ]
     .filter(Boolean)
@@ -146,9 +149,12 @@ export default function SearchCard({ search, onChanged }: Props) {
                       : "bg-secondary-container text-on-secondary-container"
                   }`}
                 >
-                  來源：{PROVIDER_LABEL[latest.source]}
+                  {PROVIDER_LABEL[latest.source]}
                 </span>
               )}
+              <div className="mt-0.5 text-label-xs text-on-surface-variant/60">
+                {formatDateTime(latest.capturedAt)} 截取
+              </div>
             </>
           ) : (
             <div className="rounded-xl bg-surface-container px-4 py-3 text-label-md font-semibold text-on-surface-variant">

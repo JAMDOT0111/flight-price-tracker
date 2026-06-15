@@ -16,5 +16,8 @@ COPY web/package.json web/
 
 RUN npm install
 
+# 下載 Playwright Chromium 及系統依賴（GoogleFlightsProvider 需要）
+RUN npx playwright install chromium --with-deps
+
 # 其餘原始碼於 docker-compose 以 bind mount 注入（熱更新）
 COPY . .

@@ -6,7 +6,7 @@
 export type TripType = "oneway" | "roundtrip";
 
 /** 機票資料來源名稱 */
-export type ProviderName = "mock" | "duffel" | "ignav";
+export type ProviderName = "mock" | "duffel" | "ignav" | "google-flights" | "skyscanner" | "trip";
 
 /** 行程天數設定：固定天數或天數區間 */
 export type DurationMode = "fixed" | "range";

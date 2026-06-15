@@ -2,13 +2,15 @@ import type { Prisma } from "@prisma/client";
 import type {
   FlightOffer,
   FlightOfferSummary,
+  FlightProvider,
   PriceSnapshot,
+  ProviderName,
   TrackedSearch,
 } from "@flight-tracker/shared";
 import { prisma } from "../db.js";
 import { priceSnapshotToDomain, trackedSearchToDomain } from "../lib/mappers.js";
-import { selectProvider } from "../providers/selector.js";
-import { addUsage } from "../providers/usage.js";
+import { buildProviderByName, getProviderChain } from "../providers/index.js";
+import { addUsage, getUsage } from "../providers/usage.js";
 import { offerMatches } from "./filters.js";
 import { capPairs, enumerateDatePairs, type DatePair } from "./window.js";
 
@@ -16,9 +18,7 @@ const MAX_QUERIES = Number(process.env.MAX_QUERIES_PER_RUN ?? 60);
 
 export interface RunResult {
   trackedSearchId: string;
-  /** 實際查詢的日期組合數 */
   evaluated: number;
-  /** 通過過濾的報價數 */
   matched: number;
   snapshot: PriceSnapshot | null;
   isNewLow: boolean;
@@ -41,54 +41,99 @@ function summarize(offer: FlightOffer): FlightOfferSummary {
   };
 }
 
-/** 對單一追蹤項目跑一輪滑動視窗，找出區間最低價並寫入快照。 */
+/** Provider 名稱轉換為對應的 env var 前綴（"google-flights" → "GOOGLE_FLIGHTS"）。 */
+function envPrefix(name: ProviderName): string {
+  return name.toUpperCase().replace(/-/g, "_");
+}
+
+function getProviderLimit(name: ProviderName): number | null {
+  if (name === "mock") return null;
+  const raw = process.env[`${envPrefix(name)}_SEARCH_LIMIT`];
+  const n = Number(raw);
+  return raw && Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+}
+
+function tryBuildProvider(name: ProviderName): FlightProvider | null {
+  try {
+    return buildProviderByName(name);
+  } catch {
+    return null;
+  }
+}
+
+async function isProviderAvailable(name: ProviderName): Promise<boolean> {
+  const limit = getProviderLimit(name);
+  if (limit === null) return true;
+  return (await getUsage(name)) < limit;
+}
+
 export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult> {
+  return runTrackedSearchWithChain(search, getProviderChain());
+}
+
+/**
+ * 對單一追蹤項目跑一輪，查詢指定 chain 中所有可用來源，取全域最低價並寫入快照。
+ * 每個 provider 各自尊重其用量上限，失敗的單次查詢不中斷整輪。
+ */
+export async function runTrackedSearchWithChain(
+  search: TrackedSearch,
+  chain: ProviderName[],
+): Promise<RunResult> {
   const pairs = capPairs(enumerateDatePairs(search), MAX_QUERIES);
 
-  // 每輪開始選定來源（依鏈/用量上限），整輪沿用。
-  const { provider, name: providerName } = await selectProvider();
+  let best: { offer: FlightOffer; pair: DatePair; source: ProviderName; provider: FlightProvider } | null = null;
+  let totalMatched = 0;
 
-  let best: { offer: FlightOffer; pair: DatePair } | null = null;
-  let matched = 0;
-  let searchCount = 0;
+  for (const providerName of chain) {
+    const provider = tryBuildProvider(providerName);
+    if (!provider) continue;
+    if (!(await isProviderAvailable(providerName))) continue;
 
-  for (const pair of pairs) {
-    const offers = await provider.search({
-      origin: search.origin,
-      destination: search.destination,
-      departureDate: pair.departureDate,
-      returnDate: pair.returnDate,
-      passengers: search.passengers,
-      nonStop: search.nonStop,
-      currency: search.currency,
-    });
-    searchCount++;
-    for (const offer of offers) {
-      if (!offerMatches(offer, search)) continue;
-      matched++;
-      if (!best || offer.totalPrice < best.offer.totalPrice) best = { offer, pair };
+    let searchCount = 0;
+    for (const pair of pairs) {
+      try {
+        const offers = await provider.search({
+          origin: search.origin,
+          destination: search.destination,
+          departureDate: pair.departureDate,
+          returnDate: pair.returnDate,
+          passengers: search.passengers,
+          nonStop: search.nonStop,
+          currency: search.currency,
+        });
+        searchCount++;
+        for (const offer of offers) {
+          if (!offerMatches(offer, search)) continue;
+          totalMatched++;
+          if (!best || offer.totalPrice < best.offer.totalPrice) {
+            best = { offer, pair, source: providerName, provider };
+          }
+        }
+      } catch (err) {
+        console.error(`[tracker] ${providerName} 查詢失敗 (${pair.departureDate}):`, err);
+      }
     }
+    if (searchCount > 0) await addUsage(providerName, searchCount);
   }
-
-  await addUsage(providerName, searchCount);
 
   if (!best) {
-    return { trackedSearchId: search.id, evaluated: pairs.length, matched, snapshot: null, isNewLow: false };
+    return { trackedSearchId: search.id, evaluated: pairs.length, matched: 0, snapshot: null, isNewLow: false };
   }
+
+  const { offer, pair, source: providerName, provider } = best;
 
   const prevMin = await prisma.priceSnapshot.aggregate({
     where: { trackedSearchId: search.id },
     _min: { lowestPrice: true },
   });
   const isNewLow =
-    prevMin._min.lowestPrice === null || best.offer.totalPrice < prevMin._min.lowestPrice;
+    prevMin._min.lowestPrice === null || offer.totalPrice < prevMin._min.lowestPrice;
 
-  // 僅對選定的最低價解析訂票連結（省 API 額度）；失敗不影響主流程。
-  let bookingDeepLink = best.offer.bookingDeepLink;
+  let bookingDeepLink = offer.bookingDeepLink;
   let bookingReturnDeepLink: string | null = null;
   if (provider.resolveBookingLink) {
     try {
-      const links = await provider.resolveBookingLink(best.offer);
+      const links = await provider.resolveBookingLink(offer);
       if (links) {
         bookingDeepLink = links.outbound;
         bookingReturnDeepLink = links.inbound;
@@ -101,13 +146,13 @@ export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult
   const row = await prisma.priceSnapshot.create({
     data: {
       trackedSearchId: search.id,
-      lowestPrice: best.offer.totalPrice,
-      currency: best.offer.currency,
-      bestOutboundDate: best.pair.departureDate,
-      bestReturnDate: best.pair.returnDate,
+      lowestPrice: offer.totalPrice,
+      currency: offer.currency,
+      bestOutboundDate: pair.departureDate,
+      bestReturnDate: pair.returnDate,
       bookingDeepLink,
       bookingReturnDeepLink,
-      offerSummary: summarize(best.offer) as unknown as Prisma.InputJsonValue,
+      offerSummary: summarize(offer) as unknown as Prisma.InputJsonValue,
       source: providerName,
     },
   });
@@ -115,27 +160,39 @@ export async function runTrackedSearch(search: TrackedSearch): Promise<RunResult
   return {
     trackedSearchId: search.id,
     evaluated: pairs.length,
-    matched,
+    matched: totalMatched,
     snapshot: priceSnapshotToDomain(row),
     isNewLow,
   };
 }
 
-export async function runTrackedSearchById(id: string): Promise<RunResult | null> {
+export async function runTrackedSearchById(id: string, chain?: ProviderName[]): Promise<RunResult | null> {
   const row = await prisma.trackedSearch.findUnique({ where: { id } });
   if (!row) return null;
-  return runTrackedSearch(trackedSearchToDomain(row));
+  const search = trackedSearchToDomain(row);
+  return chain ? runTrackedSearchWithChain(search, chain) : runTrackedSearch(search);
 }
 
 /** 對所有 active 的追蹤項目各跑一輪（逐一執行以控制負載）。 */
 export async function runAllActive(
   onResult?: (result: RunResult) => void | Promise<void>,
 ): Promise<RunResult[]> {
+  return runAllActiveWithChain(getProviderChain(), onResult);
+}
+
+/**
+ * 同 runAllActive，但允許外部指定 provider 鏈（供 GitHub Actions 分開排程使用）。
+ * 例如：只用 ["google-flights"] 的每小時輪詢，或只用 ["amadeus"] 的每日輪詢。
+ */
+export async function runAllActiveWithChain(
+  chain: ProviderName[],
+  onResult?: (result: RunResult) => void | Promise<void>,
+): Promise<RunResult[]> {
   const rows = await prisma.trackedSearch.findMany({ where: { active: true } });
   const results: RunResult[] = [];
   for (const row of rows) {
     try {
-      const result = await runTrackedSearch(trackedSearchToDomain(row));
+      const result = await runTrackedSearchWithChain(trackedSearchToDomain(row), chain);
       results.push(result);
       if (onResult) await onResult(result);
     } catch (err) {
