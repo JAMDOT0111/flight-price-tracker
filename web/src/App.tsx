@@ -54,6 +54,8 @@ function Dashboard() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [activeNav, setActiveNav] = useState<NavSection>("home");
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => getPreferredTheme());
@@ -88,6 +90,9 @@ function Dashboard() {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowFilterMenu(false);
         setShowSortMenu(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
       }
     }
     document.addEventListener("click", onDocClick);
@@ -247,6 +252,42 @@ function Dashboard() {
             </div>
             <div className="flex items-center gap-3 md:gap-4">
               {headerNav}
+
+              {/* 使用者晶片：全平台可見，點擊展開登出 */}
+              {currentUser && (
+                <div ref={userMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowUserMenu((v) => !v); }}
+                    className="flex items-center gap-1.5 rounded-xl bg-surface-container px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                  >
+                    <Icon name="person" className="text-lg text-primary" />
+                    <span className="hidden max-w-[80px] truncate sm:inline font-medium text-on-surface">
+                      {currentUser.tag}
+                    </span>
+                    <Icon name="expand_more" className="text-base" />
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute right-0 z-[60] mt-2 w-44 rounded-xl border border-outline-variant bg-surface-container-lowest py-1 shadow-lg">
+                      <div className="border-b border-outline-variant/30 px-4 py-2">
+                        <p className="text-label-sm font-bold text-on-surface">{currentUser.tag}</p>
+                        {currentUser.isAdmin && (
+                          <p className="text-label-xs text-primary">管理員</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setShowUserMenu(false); handleLogout(); }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-label-md text-error transition-colors hover:bg-error-container/20"
+                      >
+                        <Icon name="logout" className="text-lg" />
+                        登出 / 切換使用者
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
