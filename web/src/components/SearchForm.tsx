@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TrackedSearchInput, TripType, DurationMode } from "@flight-tracker/shared";
 import Icon from "./Icon.js";
 import AirportInput from "./AirportInput.js";
@@ -42,6 +42,7 @@ export default function SearchForm({ onCreate }: Props) {
   const [bagKg, setBagKg] = useState(20);
   const [currency, setCurrency] = useState("TWD");
   const [tag, setTag] = useState<string>(() => localStorage.getItem("flight-tracker-tag") ?? "");
+  const tagRef = useRef<HTMLInputElement>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,11 @@ export default function SearchForm({ onCreate }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!tag.trim()) {
+      setError("請先輸入你的名稱，才能新增追蹤");
+      tagRef.current?.focus();
+      return;
+    }
     setSubmitting(true);
     try {
       const input: TrackedSearchInput = {
@@ -86,6 +92,29 @@ export default function SearchForm({ onCreate }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className={labelCls}>
+            你的名稱
+            <span className="ml-0.5 text-error">*</span>
+          </label>
+          <input
+            ref={tagRef}
+            className={`${inputCls} ${!tag.trim() ? "border-error/50 focus:border-error focus:ring-error/20" : ""}`}
+            value={tag}
+            onChange={(e) => {
+              setTag(e.target.value);
+              localStorage.setItem("flight-tracker-tag", e.target.value);
+            }}
+            placeholder="輸入你的暱稱，如：小明"
+            maxLength={20}
+          />
+          <p className="mt-1 text-label-xs text-on-surface-variant/60">
+            每位測試者請填入不同名稱，用於區分各自的追蹤項目，儲存在此裝置
+          </p>
+        </div>
+
+        <FormDivider />
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>出發地</label>
@@ -337,26 +366,6 @@ export default function SearchForm({ onCreate }: Props) {
             <span className="text-label-md text-on-surface-variant">公斤（以上）</span>
           </div>
         )}
-
-        <FormDivider />
-
-        {/* 新增者名稱（存入 localStorage，用於篩選「只看我的」） */}
-        <div>
-          <label className={labelCls}>我的名稱（選填）</label>
-          <input
-            className={inputCls}
-            value={tag}
-            onChange={(e) => {
-              setTag(e.target.value);
-              localStorage.setItem("flight-tracker-tag", e.target.value);
-            }}
-            placeholder="輸入你的暱稱，如：小明"
-            maxLength={20}
-          />
-          <p className="mt-1 text-label-xs text-on-surface-variant/60">
-            用於篩選「只看我的」追蹤項目，儲存在本裝置
-          </p>
-        </div>
 
         {error && (
           <p className="rounded-xl bg-error-container px-4 py-3 text-label-md text-on-error-container">{error}</p>
