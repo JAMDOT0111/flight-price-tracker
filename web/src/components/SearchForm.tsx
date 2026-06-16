@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { TrackedSearchInput, TripType, DurationMode } from "@flight-tracker/shared";
 import Icon from "./Icon.js";
+import AirportInput from "./AirportInput.js";
 
 const CURRENCIES = ["TWD", "JPY", "USD", "EUR", "HKD", "SGD", "KRW", "VND"];
 
@@ -85,23 +86,19 @@ export default function SearchForm({ onCreate }: Props) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>出發地（IATA）</label>
-            <input
-              className={inputCls}
+            <label className={labelCls}>出發地</label>
+            <AirportInput
               value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
-              placeholder="TYO"
-              maxLength={3}
+              onChange={setOrigin}
+              placeholder="TPE 或 台北"
             />
           </div>
           <div>
-            <label className={labelCls}>目的地（IATA）</label>
-            <input
-              className={inputCls}
+            <label className={labelCls}>目的地</label>
+            <AirportInput
               value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="SGN"
-              maxLength={3}
+              onChange={setDestination}
+              placeholder="SGN 或 胡志明"
             />
           </div>
         </div>
