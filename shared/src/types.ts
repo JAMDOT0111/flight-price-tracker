@@ -47,6 +47,7 @@ export interface TrackedSearchInput {
   nonStop: boolean;
   checkedBaggage: CheckedBaggage;
   currency: string; // 如 "TWD"
+  tag: string; // 新增者標籤（如暱稱），空字串代表未標記
 }
 
 /** 已儲存的追蹤項目 */

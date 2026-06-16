@@ -41,6 +41,7 @@ export default function SearchForm({ onCreate }: Props) {
   const [bagRequired, setBagRequired] = useState(true);
   const [bagKg, setBagKg] = useState(20);
   const [currency, setCurrency] = useState("TWD");
+  const [tag, setTag] = useState<string>(() => localStorage.getItem("flight-tracker-tag") ?? "");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,7 @@ export default function SearchForm({ onCreate }: Props) {
         nonStop,
         checkedBaggage: { required: bagRequired, minKg: bagRequired ? bagKg : null },
         currency,
+        tag: tag.trim(),
       };
       await onCreate(input);
     } catch (err) {
@@ -335,6 +337,26 @@ export default function SearchForm({ onCreate }: Props) {
             <span className="text-label-md text-on-surface-variant">公斤（以上）</span>
           </div>
         )}
+
+        <FormDivider />
+
+        {/* 新增者名稱（存入 localStorage，用於篩選「只看我的」） */}
+        <div>
+          <label className={labelCls}>我的名稱（選填）</label>
+          <input
+            className={inputCls}
+            value={tag}
+            onChange={(e) => {
+              setTag(e.target.value);
+              localStorage.setItem("flight-tracker-tag", e.target.value);
+            }}
+            placeholder="輸入你的暱稱，如：小明"
+            maxLength={20}
+          />
+          <p className="mt-1 text-label-xs text-on-surface-variant/60">
+            用於篩選「只看我的」追蹤項目，儲存在本裝置
+          </p>
+        </div>
 
         {error && (
           <p className="rounded-xl bg-error-container px-4 py-3 text-label-md text-on-error-container">{error}</p>

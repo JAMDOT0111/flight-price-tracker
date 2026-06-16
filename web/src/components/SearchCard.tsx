@@ -163,6 +163,11 @@ export default function SearchCard({ search, onChanged }: Props) {
             <span className="rounded-full bg-tertiary-fixed px-3 py-1 text-label-sm text-on-tertiary-fixed-variant">
               {durationText(search)}
             </span>
+            {search.tag && (
+              <span className="rounded-full bg-tertiary-container px-3 py-1 text-label-sm font-medium text-on-tertiary-container">
+                {search.tag}
+              </span>
+            )}
             {!search.active && (
               <span className="flex items-center gap-1 rounded-full bg-surface-container-high px-3 py-1 text-label-sm text-on-surface-variant">
                 <Icon name="pause_circle" className="text-[14px]" />

@@ -36,6 +36,7 @@ model TrackedSearch {
 
   currency String
 
+  tag        String   @default("")
   active     Boolean  @default(true)
   shareToken String   @unique
   createdAt  DateTime @default(now())

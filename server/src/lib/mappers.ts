@@ -33,6 +33,7 @@ export function trackedSearchToDomain(row: DbTrackedSearch): TrackedSearch {
     nonStop: row.nonStop,
     checkedBaggage: { required: row.checkedBagRequired, minKg: row.checkedBagMinKg },
     currency: row.currency,
+    tag: row.tag,
     active: row.active,
     shareToken: row.shareToken,
     createdAt: row.createdAt.toISOString(),
@@ -62,6 +63,7 @@ export function trackedSearchToCreateData(
     checkedBagRequired: input.checkedBaggage.required,
     checkedBagMinKg: input.checkedBaggage.minKg,
     currency: input.currency,
+    tag: input.tag,
     shareToken,
   };
 }
@@ -87,6 +89,7 @@ export function trackedSearchToUpdateData(
     checkedBagRequired: input.checkedBaggage.required,
     checkedBagMinKg: input.checkedBaggage.minKg,
     currency: input.currency,
+    tag: input.tag,
   };
 }
 

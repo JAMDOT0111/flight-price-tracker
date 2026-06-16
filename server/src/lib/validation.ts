@@ -39,6 +39,7 @@ export const trackedSearchInputSchema = z
     nonStop: z.boolean(),
     checkedBaggage,
     currency: z.string().trim().toUpperCase().length(3),
+    tag: z.string().max(20).default(""),
   })
   .refine((v) => v.dateRangeStart <= v.dateRangeEnd, {
     message: "區間起需早於或等於迄",

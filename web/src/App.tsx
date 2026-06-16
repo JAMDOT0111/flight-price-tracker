@@ -42,6 +42,8 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<SearchFilter>("all");
   const [sort, setSort] = useState<SearchSort>("active-first");
+  const [myTag, setMyTag] = useState<string>(() => localStorage.getItem("flight-tracker-tag") ?? "");
+  const [onlyMine, setOnlyMine] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [activeNav, setActiveNav] = useState<NavSection>("home");
@@ -94,10 +96,20 @@ function Dashboard() {
     refreshConfig();
   }, [refresh, refreshConfig]);
 
-  const displayedSearches = useMemo(
-    () => filterAndSortSearches(searches, filter, sort),
-    [searches, filter, sort],
-  );
+  // 當 localStorage 的 tag 被 SearchForm 更新時同步
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === "flight-tracker-tag") setMyTag(e.newValue ?? "");
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const displayedSearches = useMemo(() => {
+    let list = filterAndSortSearches(searches, filter, sort);
+    if (onlyMine && myTag) list = list.filter((s) => s.tag === myTag);
+    return list;
+  }, [searches, filter, sort, onlyMine, myTag]);
 
   function navigate(section: NavSection) {
     setActiveNav(section);
@@ -231,13 +243,26 @@ function Dashboard() {
             </section>
 
             <section id="tracking-list" className="md:col-span-8 lg:col-span-8">
-              <div className="mb-6 flex items-center justify-between gap-4">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <h2 className="text-headline-lg-mobile font-bold md:text-headline-lg">追蹤清單</h2>
                   {!loading && searches.length > 0 && (
                     <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm font-semibold text-on-surface-variant">
                       {displayedSearches.length} 件
                     </span>
+                  )}
+                  {myTag && (
+                    <button
+                      type="button"
+                      onClick={() => setOnlyMine((v) => !v)}
+                      className={`rounded-xl px-3 py-1.5 text-label-sm font-semibold transition-colors ${
+                        onlyMine
+                          ? "bg-primary text-on-primary"
+                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                      }`}
+                    >
+                      {onlyMine ? `只看「${myTag}」` : "只看我的"}
+                    </button>
                   )}
                 </div>
                 <div ref={menuRef} className="relative flex gap-2">
