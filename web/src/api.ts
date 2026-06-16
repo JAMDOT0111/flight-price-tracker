@@ -66,6 +66,14 @@ export interface FeedbackReport {
   createdAt: string;
 }
 
+export interface LoginResult {
+  ok: boolean;
+  tag?: string;
+  isAdmin?: boolean;
+  created?: boolean;
+  message?: string;
+}
+
 export const api = {
   listSearches: () => request<TrackedSearchWithLatest[]>("/api/searches"),
   createSearch: (input: TrackedSearchInput) =>
@@ -90,4 +98,10 @@ export const api = {
     request<{ ok: boolean }>(`/api/feedback/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
   deleteFeedback: (id: string) =>
     request<void>(`/api/feedback/${id}`, { method: "DELETE" }),
+  login: (tag: string, password: string) =>
+    fetch(`${BASE_URL}/api/users/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag, password }),
+    }).then((r) => r.json() as Promise<LoginResult>),
 };

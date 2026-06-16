@@ -90,3 +90,9 @@ model FeedbackReport {
   status    String   @default("pending") // "pending" | "resolved"
   createdAt DateTime @default(now())
 }
+
+model UserAccount {
+  tag          String   @id
+  passwordHash String
+  createdAt    DateTime @default(now())
+}

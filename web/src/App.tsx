@@ -7,6 +7,7 @@ import SearchCard from "./components/SearchCard.js";
 import SharePage from "./components/SharePage.js";
 import FeedbackDialog from "./components/FeedbackDialog.js";
 import FeedbackListPage from "./components/FeedbackListPage.js";
+import LoginModal, { type CurrentUser } from "./components/LoginModal.js";
 import Icon from "./components/Icon.js";
 import {
   FILTER_OPTIONS,
@@ -42,7 +43,14 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<SearchFilter>("all");
   const [sort, setSort] = useState<SearchSort>("active-first");
-  const [myTag, setMyTag] = useState<string>(() => localStorage.getItem("flight-tracker-tag") ?? "");
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
+    try {
+      const raw = localStorage.getItem("flight-tracker-user");
+      return raw ? (JSON.parse(raw) as CurrentUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [onlyMine, setOnlyMine] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -96,20 +104,21 @@ function Dashboard() {
     refreshConfig();
   }, [refresh, refreshConfig]);
 
-  // 當 localStorage 的 tag 被 SearchForm 更新時同步
-  useEffect(() => {
-    function onStorage(e: StorageEvent) {
-      if (e.key === "flight-tracker-tag") setMyTag(e.newValue ?? "");
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
   const displayedSearches = useMemo(() => {
     let list = filterAndSortSearches(searches, filter, sort);
-    if (onlyMine && myTag) list = list.filter((s) => s.tag === myTag);
+    // 非管理員：永遠只看自己的項目
+    if (currentUser && !currentUser.isAdmin) {
+      list = list.filter((s) => s.tag === currentUser.tag);
+    } else if (currentUser?.isAdmin && onlyMine) {
+      list = list.filter((s) => s.tag === currentUser.tag);
+    }
     return list;
-  }, [searches, filter, sort, onlyMine, myTag]);
+  }, [searches, filter, sort, currentUser, onlyMine]);
+
+  function handleLogout() {
+    localStorage.removeItem("flight-tracker-user");
+    setCurrentUser(null);
+  }
 
   function navigate(section: NavSection) {
     setActiveNav(section);
@@ -153,6 +162,8 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-on-surface">
+      {!currentUser && <LoginModal onLogin={setCurrentUser} />}
+
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-outline-variant bg-surface-container-lowest px-4 pb-6 pt-8 shadow-sm lg:flex">
         <div className="mb-4 px-4">
           <h2 className="text-title-md font-black text-primary">機票追蹤</h2>
@@ -179,9 +190,28 @@ function Dashboard() {
           })}
         </nav>
 
-        {/* 底部分隔線 + 問題回報按鈕 */}
+        {/* 底部：使用者資訊 + 問題回報 + 登出 */}
         <div className="mt-auto">
           <div className="mb-3 border-t border-outline-variant/30" />
+          {currentUser && (
+            <div className="mb-2 flex items-center gap-3 rounded-xl bg-surface-container-low px-4 py-2.5">
+              <Icon name="person" className="shrink-0 text-primary text-lg" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-label-sm font-bold text-on-surface">{currentUser.tag}</p>
+                {currentUser.isAdmin && (
+                  <p className="text-label-xs text-primary">管理員</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="登出"
+                className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error"
+              >
+                <Icon name="logout" className="text-lg" />
+              </button>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setFeedbackOpen(true)}
@@ -239,7 +269,7 @@ function Dashboard() {
           ) : (
           <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
             <section id="search-form" className="h-fit md:col-span-4 md:sticky md:top-24 lg:col-span-4">
-              <SearchForm onCreate={handleCreate} />
+              {currentUser && <SearchForm onCreate={handleCreate} currentUser={currentUser} />}
             </section>
 
             <section id="tracking-list" className="md:col-span-8 lg:col-span-8">
@@ -251,7 +281,7 @@ function Dashboard() {
                       {displayedSearches.length} 件
                     </span>
                   )}
-                  {myTag && (
+                  {currentUser?.isAdmin && (
                     <button
                       type="button"
                       onClick={() => setOnlyMine((v) => !v)}
@@ -261,7 +291,7 @@ function Dashboard() {
                           : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                       }`}
                     >
-                      {onlyMine ? `只看「${myTag}」` : "只看我的"}
+                      {onlyMine ? `只看「${currentUser.tag}」` : "全部 / 只看我的"}
                     </button>
                   )}
                 </div>

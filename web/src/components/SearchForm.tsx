@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { TrackedSearchInput, TripType, DurationMode } from "@flight-tracker/shared";
 import Icon from "./Icon.js";
 import AirportInput from "./AirportInput.js";
+import type { CurrentUser } from "./LoginModal.js";
 
 const CURRENCIES = ["TWD", "JPY", "USD", "EUR", "HKD", "SGD", "KRW", "VND"];
 
 interface Props {
   onCreate: (input: TrackedSearchInput) => Promise<void>;
+  currentUser: CurrentUser;
 }
 
 const labelCls = "mb-2 block text-label-md text-on-surface-variant";
@@ -20,7 +22,7 @@ function FormDivider() {
   return <div className="border-t border-outline-variant/30" aria-hidden />;
 }
 
-export default function SearchForm({ onCreate }: Props) {
+export default function SearchForm({ onCreate, currentUser }: Props) {
   const [origin, setOrigin] = useState("TYO");
   const [destination, setDestination] = useState("SGN");
   const [tripType, setTripType] = useState<TripType>("roundtrip");
@@ -41,9 +43,6 @@ export default function SearchForm({ onCreate }: Props) {
   const [bagRequired, setBagRequired] = useState(true);
   const [bagKg, setBagKg] = useState(20);
   const [currency, setCurrency] = useState("TWD");
-  const [tag, setTag] = useState<string>(() => localStorage.getItem("flight-tracker-tag") ?? "");
-  const tagRef = useRef<HTMLInputElement>(null);
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,11 +51,6 @@ export default function SearchForm({ onCreate }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!tag.trim()) {
-      setError("請先輸入你的名稱，才能新增追蹤");
-      tagRef.current?.focus();
-      return;
-    }
     setSubmitting(true);
     try {
       const input: TrackedSearchInput = {
@@ -74,7 +68,7 @@ export default function SearchForm({ onCreate }: Props) {
         nonStop,
         checkedBaggage: { required: bagRequired, minKg: bagRequired ? bagKg : null },
         currency,
-        tag: tag.trim(),
+        tag: currentUser.tag,
       };
       await onCreate(input);
     } catch (err) {
@@ -92,25 +86,17 @@ export default function SearchForm({ onCreate }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className={labelCls}>
-            你的名稱
-            <span className="ml-0.5 text-error">*</span>
-          </label>
-          <input
-            ref={tagRef}
-            className={`${inputCls} ${!tag.trim() ? "border-error/50 focus:border-error focus:ring-error/20" : ""}`}
-            value={tag}
-            onChange={(e) => {
-              setTag(e.target.value);
-              localStorage.setItem("flight-tracker-tag", e.target.value);
-            }}
-            placeholder="輸入你的暱稱，如：小明"
-            maxLength={20}
-          />
-          <p className="mt-1 text-label-xs text-on-surface-variant/60">
-            每位測試者請填入不同名稱，用於區分各自的追蹤項目，儲存在此裝置
-          </p>
+        <div className="flex items-center gap-3 rounded-xl bg-primary-container/20 px-4 py-3">
+          <Icon name="person" className="shrink-0 text-primary" />
+          <div className="min-w-0">
+            <p className="text-label-xs text-on-surface-variant">目前使用者</p>
+            <p className="truncate text-label-md font-bold text-primary">{currentUser.tag}</p>
+          </div>
+          {currentUser.isAdmin && (
+            <span className="ml-auto rounded-full bg-primary px-2.5 py-0.5 text-label-xs font-bold text-on-primary">
+              管理員
+            </span>
+          )}
         </div>
 
         <FormDivider />
