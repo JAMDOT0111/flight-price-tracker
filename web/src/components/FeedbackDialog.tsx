@@ -48,13 +48,13 @@ export default function FeedbackDialog({ open, onClose }: Props) {
         aria-hidden
       />
 
-      {/* 對話框：桌面版浮在左側欄上方，手機版由底部滑上 */}
+      {/* 對話框：桌面版浮在左側欄上方，手機版由底部滑上（bottom-20 = 80px，閃過底部 nav bar） */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="問題回報"
-        className="fixed z-50 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xl
-          bottom-4 left-4 right-4
+        className="fixed z-50 flex max-h-[80vh] flex-col rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xl
+          bottom-20 left-4 right-4
           lg:bottom-6 lg:left-4 lg:right-auto lg:w-56"
       >
         {/* 標題列 */}
@@ -73,8 +73,8 @@ export default function FeedbackDialog({ open, onClose }: Props) {
           </button>
         </div>
 
-        {/* 內容 */}
-        <div className="p-4">
+        {/* 內容（overflow-y-auto 確保手機小螢幕可捲動） */}
+        <div className="overflow-y-auto p-4">
           {status === "done" ? (
             <div className="flex flex-col items-center gap-2 py-4 text-center">
               <Icon name="check_circle" className="text-3xl text-primary" filled />

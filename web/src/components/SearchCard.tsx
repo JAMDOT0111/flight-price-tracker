@@ -73,6 +73,7 @@ type RunStatus = "idle" | "running" | "found" | "notfound";
 export default function SearchCard({ search, onChanged }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [snapshots, setSnapshots] = useState<PriceSnapshot[]>([]);
+  const [actionError, setActionError] = useState<string | null>(null);
   // busy：暫停/刪除/恢復 專用，期間所有按鈕停用
   const [busy, setBusy] = useState(false);
   // running：立即追蹤 專用，不影響其他按鈕
@@ -108,8 +109,11 @@ export default function SearchCard({ search, onChanged }: Props) {
 
   async function withBusy(fn: () => Promise<void>) {
     setBusy(true);
+    setActionError(null);
     try {
       await fn();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "操作失敗，請重試");
     } finally {
       setBusy(false);
     }
@@ -138,9 +142,16 @@ export default function SearchCard({ search, onChanged }: Props) {
     }
   }
 
+  const baggageText = search.checkedBaggage.required
+    ? search.checkedBaggage.minKg
+      ? `含行李 ${search.checkedBaggage.minKg}kg+`
+      : "含行李"
+    : "不含行李";
+
   const metaLine = [
     `${formatDate(search.dateRangeStart)}–${formatDate(search.dateRangeEnd)}`,
     search.nonStop ? "直飛" : null,
+    baggageText,
     search.departureWindow ? `去程出發 ${search.departureWindow.start}-${search.departureWindow.end}` : null,
     search.arrivalWindow ? `返程出發 ${search.arrivalWindow.start}-${search.arrivalWindow.end}` : null,
     `${search.passengers} 人`,
@@ -328,6 +339,12 @@ export default function SearchCard({ search, onChanged }: Props) {
           />
         )}
       </div>
+
+      {actionError && (
+        <p className="mt-3 rounded-xl bg-error-container px-3 py-2 text-label-sm text-on-error-container">
+          {actionError}
+        </p>
+      )}
 
       {expanded && (
         <div className="mt-4 border-t border-outline-variant/20 pt-4">

@@ -40,7 +40,7 @@ export default function SearchForm({ onCreate, currentUser }: Props) {
   const [arrEnd, setArrEnd] = useState("21:00");
   const [passengers, setPassengers] = useState(1);
   const [nonStop, setNonStop] = useState(true);
-  const [bagRequired, setBagRequired] = useState(true);
+  const [bagRequired, setBagRequired] = useState(false);
   const [bagKg, setBagKg] = useState(20);
   const [currency, setCurrency] = useState("TWD");
   const [submitting, setSubmitting] = useState(false);
