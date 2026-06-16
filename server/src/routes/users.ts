@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { prisma } from "../lib/prisma.js";
+import { prisma } from "../db.js";
 
 function hashPassword(password: string, tag: string): string {
   return createHash("sha256").update(`${password}:${tag}`).digest("hex");
