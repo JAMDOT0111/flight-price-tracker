@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buildGoogleFlightsUrlForTrackedSearch, type PriceSnapshot, type ProviderName } from "@flight-tracker/shared";
 import { api, type TrackedSearchWithLatest } from "../api.js";
 import { formatDate, formatDateTime, formatPrice } from "../format.js";
@@ -68,12 +68,31 @@ function BookingLinkButtons({
   );
 }
 
+type RunStatus = "idle" | "running" | "found" | "notfound";
+
 export default function SearchCard({ search, onChanged }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [snapshots, setSnapshots] = useState<PriceSnapshot[]>([]);
+  // busy：暫停/刪除/恢復 專用，期間所有按鈕停用
   const [busy, setBusy] = useState(false);
+  // running：立即追蹤 專用，不影響其他按鈕
+  const [running, setRunning] = useState(false);
+  const [runStatus, setRunStatus] = useState<RunStatus>("idle");
+  // freshSnapshot：run-now 回傳後立即顯示，不等待父層 refresh
+  const [freshSnapshot, setFreshSnapshot] = useState<PriceSnapshot | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const latest = search.latestSnapshot;
+  // 父層 refresh 跟上後清除本地暫存
+  useEffect(() => {
+    if (freshSnapshot && search.latestSnapshot?.id === freshSnapshot.id) {
+      setFreshSnapshot(null);
+    }
+  }, [search.latestSnapshot, freshSnapshot]);
+
+  // 組件卸載時清計時器
+  useEffect(() => () => { if (statusTimer.current) clearTimeout(statusTimer.current); }, []);
+
+  const latest = freshSnapshot ?? search.latestSnapshot;
   const googleFlightsUrl = buildGoogleFlightsUrlForTrackedSearch(search, latest);
   const dimmed = !latest;
 
@@ -93,6 +112,29 @@ export default function SearchCard({ search, onChanged }: Props) {
       await fn();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRunNow() {
+    if (running || busy) return;
+    setRunning(true);
+    setRunStatus("running");
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    try {
+      const result = await api.runNow(search.id);
+      if (result.snapshot) {
+        setFreshSnapshot(result.snapshot);
+        setRunStatus("found");
+      } else {
+        setRunStatus("notfound");
+      }
+      onChanged();
+      if (expanded) await loadSnapshots();
+    } catch {
+      setRunStatus("idle");
+    } finally {
+      setRunning(false);
+      statusTimer.current = setTimeout(() => setRunStatus("idle"), 3000);
     }
   }
 
@@ -223,22 +265,22 @@ export default function SearchCard({ search, onChanged }: Props) {
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() =>
-            withBusy(async () => {
-              await api.runNow(search.id);
-              onChanged();
-              if (expanded) await loadSnapshots();
-            })
-          }
-          disabled={busy}
+          onClick={() => void handleRunNow()}
+          disabled={running || busy}
           className="rounded-xl bg-primary px-4 py-2 text-label-md font-bold text-on-primary transition-all hover:shadow-md disabled:opacity-50"
         >
-          立即追蹤一次
+          {runStatus === "running"
+            ? "追蹤中..."
+            : runStatus === "found"
+              ? "✓ 已取得報價"
+              : runStatus === "notfound"
+                ? "暫無符合條件"
+                : "立即追蹤一次"}
         </button>
         <button
           type="button"
           onClick={() =>
-            withBusy(async () => {
+            void withBusy(async () => {
               await api.setActive(search.id, !search.active);
               onChanged();
             })
