@@ -5,6 +5,8 @@ import { enablePush } from "./push.js";
 import SearchForm from "./components/SearchForm.js";
 import SearchCard from "./components/SearchCard.js";
 import SharePage from "./components/SharePage.js";
+import FeedbackDialog from "./components/FeedbackDialog.js";
+import FeedbackListPage from "./components/FeedbackListPage.js";
 import Icon from "./components/Icon.js";
 import {
   FILTER_OPTIONS,
@@ -15,7 +17,7 @@ import {
 } from "./lib/searchListControls.js";
 import { applyTheme, getPreferredTheme, type ThemeMode } from "./lib/theme.js";
 
-type NavSection = "home" | "list";
+type NavSection = "home" | "list" | "feedback-list";
 
 export default function App() {
   // BASE_URL 在 GitHub Pages 為 "/flight-price-tracker/"，本機為 "/"
@@ -43,6 +45,7 @@ function Dashboard() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [activeNav, setActiveNav] = useState<NavSection>("home");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => getPreferredTheme());
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +101,8 @@ function Dashboard() {
 
   function navigate(section: NavSection) {
     setActiveNav(section);
-    scrollToSection(section === "home" ? "search-form" : "tracking-list");
+    if (section === "home") scrollToSection("search-form");
+    else if (section === "list") scrollToSection("tracking-list");
   }
 
   const headerNav = (
@@ -107,6 +111,7 @@ function Dashboard() {
         [
           { id: "home" as const, label: "首頁" },
           { id: "list" as const, label: "追蹤清單" },
+          { id: "feedback-list" as const, label: "問題彙總" },
         ] as const
       ).map(({ id, label }) => (
         <button
@@ -128,6 +133,7 @@ function Dashboard() {
   const sidebarNavItems: { id: NavSection; label: string; icon: string }[] = [
     { id: "home", label: "首頁", icon: "home" },
     { id: "list", label: "追蹤清單", icon: "list_alt" },
+    { id: "feedback-list", label: "問題彙總", icon: "task_alt" },
   ];
 
   const filterBtnClass =
@@ -135,7 +141,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-on-surface">
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col gap-4 border-r border-outline-variant bg-surface-container-lowest px-4 pb-8 pt-8 shadow-sm lg:flex">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 flex-col border-r border-outline-variant bg-surface-container-lowest px-4 pb-6 pt-8 shadow-sm lg:flex">
         <div className="mb-4 px-4">
           <h2 className="text-title-md font-black text-primary">機票追蹤</h2>
           <p className="text-label-sm text-on-surface-variant">Premium Travel Concierge</p>
@@ -154,13 +160,28 @@ function Dashboard() {
                     : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
                 }`}
               >
-                <Icon name={icon} filled={active && id === "home"} />
+                <Icon name={icon} filled={active} />
                 {label}
               </button>
             );
           })}
         </nav>
+
+        {/* 底部分隔線 + 問題回報按鈕 */}
+        <div className="mt-auto">
+          <div className="mb-3 border-t border-outline-variant/30" />
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-label-md text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-on-surface"
+          >
+            <Icon name="bug_report" />
+            問題回報
+          </button>
+        </div>
       </aside>
+
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       <div className="flex min-h-screen flex-col pb-20 lg:ml-64 md:pb-0">
         <header className="sticky top-0 z-50 border-b border-outline-variant bg-background">
@@ -201,6 +222,9 @@ function Dashboard() {
         </header>
 
         <main className="flex-1 px-margin-mobile py-6 lg:px-gutter md:px-margin-desktop">
+          {activeNav === "feedback-list" ? (
+            <FeedbackListPage />
+          ) : (
           <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
             <section id="search-form" className="h-fit md:col-span-4 md:sticky md:top-24 lg:col-span-4">
               <SearchForm onCreate={handleCreate} />
@@ -310,6 +334,7 @@ function Dashboard() {
               </div>
             </section>
             </div>
+          )}
           </main>
 
           <footer className="border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-8 lg:px-gutter md:px-margin-desktop">
@@ -334,11 +359,12 @@ function Dashboard() {
           </footer>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-outline-variant bg-surface-container px-4 py-3 lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-outline-variant bg-surface-container px-2 py-3 lg:hidden">
         {(
           [
             { id: "home" as const, label: "首頁", icon: "home" },
             { id: "list" as const, label: "追蹤清單", icon: "list_alt" },
+            { id: "feedback-list" as const, label: "問題彙總", icon: "task_alt" },
           ] as const
         ).map(({ id, label, icon }) => (
           <button
@@ -351,6 +377,14 @@ function Dashboard() {
             <span className={`text-[10px] ${activeNav === id ? "font-bold" : "font-medium"}`}>{label}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          className="flex flex-col items-center gap-1 text-on-surface-variant"
+        >
+          <Icon name="bug_report" />
+          <span className="text-[10px] font-medium">問題回報</span>
+        </button>
       </nav>
     </div>
   );

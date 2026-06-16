@@ -82,3 +82,10 @@ model PushSubscription {
   trackedSearchId String?
   createdAt       DateTime @default(now())
 }
+
+model FeedbackReport {
+  id        String   @id @default(cuid())
+  message   String
+  status    String   @default("pending") // "pending" | "resolved"
+  createdAt DateTime @default(now())
+}

@@ -4,6 +4,7 @@ import { searchRoutes } from "./routes/searches.js";
 import { shareRoutes } from "./routes/share.js";
 import { pushRoutes } from "./routes/push.js";
 import { configRoutes } from "./routes/config.js";
+import { feedbackRoutes } from "./routes/feedback.js";
 import { startScheduler } from "./engine/scheduler.js";
 
 const port = Number(process.env.SERVER_PORT ?? 3001);
@@ -24,6 +25,7 @@ await app.register(searchRoutes);
 await app.register(shareRoutes);
 await app.register(pushRoutes);
 await app.register(configRoutes);
+await app.register(feedbackRoutes);
 
 try {
   await app.listen({ port, host: "0.0.0.0" });

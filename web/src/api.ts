@@ -59,6 +59,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface FeedbackReport {
+  id: string;
+  message: string;
+  status: "pending" | "resolved";
+  createdAt: string;
+}
+
 export const api = {
   listSearches: () => request<TrackedSearchWithLatest[]>("/api/searches"),
   createSearch: (input: TrackedSearchInput) =>
@@ -76,4 +83,11 @@ export const api = {
   getPushPublicKey: () => request<{ publicKey: string; enabled: boolean }>("/api/push/public-key"),
   subscribePush: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
     request<{ ok: boolean }>("/api/push/subscribe", { method: "POST", body: JSON.stringify(sub) }),
+  submitFeedback: (message: string) =>
+    request<{ id: string; ok: boolean }>("/api/feedback", { method: "POST", body: JSON.stringify({ message }) }),
+  listFeedback: () => request<FeedbackReport[]>("/api/feedback"),
+  updateFeedbackStatus: (id: string, status: "pending" | "resolved") =>
+    request<{ ok: boolean }>(`/api/feedback/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  deleteFeedback: (id: string) =>
+    request<void>(`/api/feedback/${id}`, { method: "DELETE" }),
 };
