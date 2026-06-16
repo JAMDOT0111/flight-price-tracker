@@ -106,7 +106,6 @@ function Dashboard() {
 
   const displayedSearches = useMemo(() => {
     let list = filterAndSortSearches(searches, filter, sort);
-    // 非管理員：永遠只看自己的項目
     if (currentUser && !currentUser.isAdmin) {
       list = list.filter((s) => s.tag === currentUser.tag);
     } else if (currentUser?.isAdmin && onlyMine) {
@@ -114,6 +113,18 @@ function Dashboard() {
     }
     return list;
   }, [searches, filter, sort, currentUser, onlyMine]);
+
+  // 管理員且顯示全部時，依帳號分組
+  const adminGroups = useMemo(() => {
+    if (!currentUser?.isAdmin || onlyMine) return null;
+    const map = new Map<string, typeof displayedSearches>();
+    for (const s of displayedSearches) {
+      const key = s.tag || "(未設定帳號)";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, "zh-Hant"));
+  }, [currentUser, onlyMine, displayedSearches]);
 
   function handleLogout() {
     localStorage.removeItem("flight-tracker-user");
@@ -382,11 +393,35 @@ function Dashboard() {
               {!loading && !error && searches.length > 0 && displayedSearches.length === 0 && (
                 <p className="text-label-md text-on-surface-variant">沒有符合篩選條件的項目。</p>
               )}
-              <div className="space-y-gutter">
-                {displayedSearches.map((s) => (
-                  <SearchCard key={s.id} search={s} onChanged={handleChanged} />
-                ))}
-              </div>
+
+              {/* 管理員分組視圖 */}
+              {adminGroups ? (
+                <div className="space-y-8">
+                  {adminGroups.map(([tag, items]) => (
+                    <div key={tag}>
+                      <div className="mb-3 flex items-center gap-2">
+                        <Icon name="person" className="text-primary" />
+                        <span className="text-label-md font-bold text-on-surface">{tag}</span>
+                        <span className="rounded-full bg-surface-container px-2 py-0.5 text-label-xs font-semibold text-on-surface-variant">
+                          {items.length} 件
+                        </span>
+                        <div className="flex-1 border-t border-outline-variant/40" />
+                      </div>
+                      <div className="space-y-gutter">
+                        {items.map((s) => (
+                          <SearchCard key={s.id} search={s} onChanged={handleChanged} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-gutter">
+                  {displayedSearches.map((s) => (
+                    <SearchCard key={s.id} search={s} onChanged={handleChanged} />
+                  ))}
+                </div>
+              )}
             </section>
             </div>
           )}
