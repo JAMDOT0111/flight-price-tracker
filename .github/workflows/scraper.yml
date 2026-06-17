@@ -1,11 +1,8 @@
 name: Flight Price Scraper
 
 on:
-  schedule:
-    # Google Flights（爬蟲，無額度限制）：每小時整點
-    - cron: "0 * * * *"
-    # Ignav（免費 API，~1,000 次/月，每次 60 queries）：每週一凌晨 2 點
-    - cron: "0 2 * * 1"
+  # server 內建 node-cron 排程器（每 30 分鐘自動跑），不需要 GitHub Actions 定時觸發
+  # 保留 workflow_dispatch 供手動測試用
   workflow_dispatch:
     inputs:
       provider:
