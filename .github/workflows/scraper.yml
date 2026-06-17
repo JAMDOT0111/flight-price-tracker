@@ -4,7 +4,7 @@ on:
   schedule:
     # Google Flights（爬蟲，無額度限制）：每小時整點
     - cron: "0 * * * *"
-    # Ignav（免費 API，~1,000 次/月，每次 60 queries）：每週一凌晨 2 點（本月剩 158 次，保守排程）
+    # Ignav（免費 API，~1,000 次/月，每次 60 queries）：每週一凌晨 2 點
     - cron: "0 2 * * 1"
   workflow_dispatch:
     inputs:
@@ -18,34 +18,42 @@ jobs:
     name: Google Flights 每小時掃描
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 每小時觸發，或手動指定 google-flights，或手動未指定（全部）
     if: |
       github.event.schedule == '0 * * * *' ||
       github.event.inputs.provider == 'google-flights' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.provider == '')
     steps:
+      - name: 連線 Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --accept-routes
+
       - name: 觸發 Google Flights 追蹤
         run: |
-          curl -sf -X POST "${{ secrets.TRACKER_URL }}/api/run-all" \
+          curl -sf -X POST "http://100.93.53.27:3001/api/run-all" \
             -H "Authorization: Bearer ${{ secrets.RUN_SECRET }}" \
             -H "X-Provider-Override: google-flights" \
-            -H "Content-Type: application/json" \
             --fail-with-body
 
   ignav:
     name: Ignav 每週掃描
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 每 2 天觸發，或手動指定 ignav，或手動未指定（全部）
     if: |
       github.event.schedule == '0 2 * * 1' ||
       github.event.inputs.provider == 'ignav' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.provider == '')
     steps:
+      - name: 連線 Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          args: --accept-routes
+
       - name: 觸發 Ignav 追蹤
         run: |
-          curl -sf -X POST "${{ secrets.TRACKER_URL }}/api/run-all" \
+          curl -sf -X POST "http://100.93.53.27:3001/api/run-all" \
             -H "Authorization: Bearer ${{ secrets.RUN_SECRET }}" \
             -H "X-Provider-Override: ignav" \
-            -H "Content-Type: application/json" \
             --fail-with-body
